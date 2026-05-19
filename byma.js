@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F0E0C" />
+  <title>Pulso · Tu tablero de mando argentino</title>
+  <meta name="description" content="El dólar, la inflación, tu changuito y tus inversiones en una sola app. Pulso te da el termómetro de la economía argentina." />
+  <meta property="og:title" content="Pulso · Tu tablero de mando argentino" />
+  <meta property="og:description" content="Dólar, inflación, changuito y CEDEARs en un solo lugar." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F0E0C'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Georgia,serif' font-size='18' font-weight='600' fill='%23F4E4D0'%3EP%3C/text%3E%3Ccircle cx='24' cy='10' r='3' fill='%23E24B4A'/%3E%3C/svg%3E" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- ============= HEADER GLOBAL ============= -->
+    <header class="app-header" id="appHeader">
+      <div class="header-brand">
+        <span class="brand-text">Pulso</span><span class="brand-dot">.</span>
+      </div>
+      <div class="header-meta" id="headerMeta">
+        <span class="streak-pill" id="streakPill">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          <span id="streakDays">12</span> días
+        </span>
+      </div>
+    </header>
+
+    <!-- ============= PANTALLAS ============= -->
+    <main class="screens-wrap">
+
+      <!-- PANTALLA: PULSO (HOME) -->
+      <section class="screen active" data-screen="home">
+        <div class="scroll-area">
+          <!-- HERO: PULSO DEL DÍA -->
+          <div class="card-pulso" id="cardPulsoDia">
+            <span class="kicker" id="pulsoFecha">cargando...</span>
+            <div class="pulso-emoji" id="pulsoEmoji">😬</div>
+            <div class="pulso-num" id="pulsoNumero">42</div>
+            <div class="pulso-state" id="pulsoEstado">Tensión moderada</div>
+            <div class="pulso-bar">
+              <div class="pulso-bar-grad"></div>
+              <div class="pulso-bar-mark" id="pulsoBarMark" style="left: 42%;"></div>
+            </div>
+            <div class="pulso-bar-labels">
+              <span>crisis</span><span>estable</span><span>bonanza</span>
+            </div>
+            <button class="share-btn" onclick="Pulso.share('pulso')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Compartir
+            </button>
+          </div>
+
+          <!-- HEADLINE -->
+          <div class="card">
+            <span class="kicker">🔥 lo que está pasando</span>
+            <p class="headline" id="headlineText">Cargando últimas novedades...</p>
+            <p class="meta-line" id="headlineMeta"></p>
+          </div>
+
+          <!-- MINI CHANGUITO -->
+          <button class="card card-link" onclick="Pulso.go('canasta')">
+            <div class="card-row">
+              <span class="kicker">🛒 tu changuito</span>
+              <span class="meta-line">→</span>
+            </div>
+            <p class="card-text"><strong id="changuitoCount">10</strong> productos en seguimiento</p>
+            <p class="meta-line" id="changuitoTrend">Precios reales por supermercado · próximamente</p>
+          </button>
+
+          <!-- MINI CEDEARS -->
+          <button class="card card-link" onclick="Pulso.go('cedears')">
+            <div class="card-row">
+              <span class="kicker">⭐ tus CEDEARs</span>
+              <span class="meta-line">→</span>
+            </div>
+            <p class="card-text"><span id="cedearsCount">5</span> en seguimiento · valor <strong id="cedearsTotal">$—</strong></p>
+            <p class="trend-up" id="cedearsTrend">cargando...</p>
+          </button>
+
+          <!-- INDICADORES CLAVE -->
+          <div class="card">
+            <span class="kicker">📊 los números de hoy</span>
+            <div class="indicators-grid" id="indicatorsGrid">
+              <div class="indicator-tile loading" onclick="Pulso.go('mercados')">
+                <div class="indicator-label">Blue</div>
+                <div class="indicator-val" id="indBlue">—</div>
+                <div class="indicator-chg" id="indBlueChg">—</div>
+              </div>
+              <div class="indicator-tile loading">
+                <div class="indicator-label">Inflación</div>
+                <div class="indicator-val" id="indInfl">—</div>
+                <div class="indicator-chg" id="indInflChg">—</div>
+              </div>
+              <div class="indicator-tile loading">
+                <div class="indicator-label">Riesgo país</div>
+                <div class="indicator-val" id="indRiesgo">—</div>
+                <div class="indicator-chg" id="indRiesgoChg">—</div>
+              </div>
+              <div class="indicator-tile loading">
+                <div class="indicator-label">Bitcoin</div>
+                <div class="indicator-val" id="indBtc">—</div>
+                <div class="indicator-chg" id="indBtcChg">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MÁQUINA DEL TIEMPO -->
+          <div style="background:#14110D; border-radius:16px; padding:18px;">
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">⏰ máquina del tiempo</span>
+            <p style="font-size:13px; color:#F4ECE0; margin:8px 0 4px; line-height:1.45;" id="maquinaTexto">Cargando comparativa interanual...</p>
+            <p style="font-size:11px; color:#B8AE9D; margin:0;" id="maquinaWarn"></p>
+          </div>
+
+          <!-- PREDICCIÓN COMUNITARIA -->
+          <div class="card">
+            <div class="card-row">
+              <span class="kicker">🔮 predicción comunitaria</span>
+              <span class="meta-line"><span id="votosTotales">2.847</span> votos</span>
+            </div>
+            <p class="card-text">¿A cuánto cierra el blue el lunes?</p>
+            <div class="vote-grid" id="voteGrid">
+              <button class="vote-btn" data-vote="baja" onclick="Pulso.vote(this)">
+                <span class="vote-label">▼ &lt;1.380</span>
+                <span class="vote-pct">28%</span>
+              </button>
+              <button class="vote-btn" data-vote="igual" onclick="Pulso.vote(this)">
+                <span class="vote-label">≈ 1.380-1.400</span>
+                <span class="vote-pct">45%</span>
+              </button>
+              <button class="vote-btn" data-vote="sube" onclick="Pulso.vote(this)">
+                <span class="vote-label">▲ &gt;1.400</span>
+                <span class="vote-pct">27%</span>
+              </button>
+            </div>
+            <p class="meta-line" id="voteStatus" style="margin-top: 8px;">Acertaste 7 de 10 · Top 8% predictores</p>
+          </div>
+
+          <!-- LOGROS -->
+          <div class="card">
+            <span class="kicker">🏆 tus logros</span>
+            <div class="achievement">
+              <div class="achievement-icon">🔥</div>
+              <div class="achievement-text">
+                <div><strong id="logroDias">12 días</strong> registrando gastos</div>
+                <div class="meta-line">Falta 1 día para el oro 🥇</div>
+              </div>
+            </div>
+            <div class="achievement">
+              <div class="achievement-icon">💰</div>
+              <div class="achievement-text">
+                <div>Tu balance del mes: <strong id="logroBalance">—</strong></div>
+                <div class="meta-line" id="logroBalanceSub">cargando...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INVITAR AMIGOS -->
+          <div class="card card-invite">
+            <div class="invite-emoji">👯</div>
+            <p class="invite-title">Invitá 3 amigos · 1 mes Pro gratis</p>
+            <p class="meta-line">2 de 3 ya se sumaron</p>
+            <button class="btn-primary" onclick="Pulso.invitar()">Invitar al último</button>
+          </div>
+
+          <div class="footer-disclaimer">
+            <p>Pulso v1.0 · Datos de DolarAPI, ArgentinaDatos, CoinGecko e INDEC</p>
+            <p>Esta app es informativa, no es asesoramiento financiero</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANTALLA: CHANGUITO -->
+      <section class="screen" data-screen="canasta">
+        <div class="scroll-area">
+
+          <!-- BUSCADOR PROMINENTE -->
+          <div class="card">
+            <span class="kicker">🔍 buscar producto</span>
+            <p class="meta-line" style="margin-bottom: 10px;">Buscá cualquier producto y mirá los precios reales en cada supermercado</p>
+            <div class="search-row">
+              <input
+                type="text"
+                class="search-input-big"
+                id="searchProducts"
+                placeholder="Ej: leche, yerba, carne picada..."
+                autocomplete="off"
+              />
+              <button class="search-btn" id="searchBtn" onclick="Pulso.buscar()">Buscar</button>
+            </div>
+            <p class="meta-line" id="searchHint">Consultamos Día, Carrefour, Disco, Jumbo y Vea en vivo</p>
+          </div>
+
+          <!-- RESULTADOS DE BÚSQUEDA -->
+          <div class="card" id="searchResultsCard" style="display: none;">
+            <div class="card-row">
+              <span class="kicker" id="searchResultsTitle">resultados</span>
+              <button class="link-btn" onclick="Pulso.clearSearch()">Limpiar</button>
+            </div>
+            <div id="searchResults"></div>
+          </div>
+
+          <!-- TU CHANGUITO ACTUAL -->
+          <div class="card" id="changuitoCard">
+            <div class="selection-header">
+              <div>
+                <span class="kicker">🛒 tu changuito</span>
+                <p class="meta-line">Los productos que elegiste comparar</p>
+              </div>
+              <span class="counter-pill" id="counterCanasta">0 de 10</span>
+            </div>
+
+            <div id="changuitoList">
+              <p class="meta-line empty-state" id="changuitoEmpty">Tu changuito está vacío. Buscá productos arriba para agregar.</p>
+            </div>
+
+            <button class="btn-secondary" id="refreshPricesBtn" onclick="Pulso.refrescarPrecios()" style="display: none;">
+              ↻ Actualizar precios
+            </button>
+          </div>
+
+          <!-- TABLA COMPARATIVA TOTAL -->
+          <div class="card" id="comparativaCard" style="display: none;">
+            <div class="card-row">
+              <span class="kicker">📊 total por supermercado</span>
+              <span class="meta-line">tu changuito completo</span>
+            </div>
+            <p class="meta-line" style="margin-bottom: 8px;">El más barato en verde</p>
+            <div id="comparativaTotales"></div>
+            <div class="source-line">
+              <span class="source-dot"></span>
+              <span id="comparativaSource">Precios consultados en vivo · cache 1 hora</span>
+            </div>
+          </div>
+
+          <!-- AVISO MODO LOCAL -->
+          <div class="card-soon" id="proxyWarning" style="display: none;">
+            <div class="soon-emoji">⚠️</div>
+            <p class="soon-title">Precios reales no disponibles</p>
+            <p class="soon-text">El buscador necesita que la app esté desplegada en <strong>Vercel</strong> para consultar los supermercados (por restricciones del navegador). Si abriste el archivo localmente, no va a funcionar.</p>
+            <p class="soon-meta">Subila a vercel.com (drag & drop, gratis) para activarlo</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANTALLA: MERCADOS -->
+      <section class="screen" data-screen="mercados">
+        <div class="scroll-area">
+          <!-- DÓLAR -->
+          <div class="card">
+            <span class="kicker">💵 dólar</span>
+            <div id="dolarList">
+              <div class="market-row loading-row">
+                <div><div class="mr-name">Cargando...</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MERCADO ARGENTINO -->
+          <div class="card">
+            <span class="kicker">📈 mercado argentino</span>
+            <div class="market-row">
+              <div><div class="mr-name">Merval</div><div class="mr-sub">en pesos</div></div>
+              <div class="mr-val"><div id="mervalVal">—</div><span class="pill" id="mervalChg">—</span></div>
+            </div>
+            <div class="market-row">
+              <div><div class="mr-name">Riesgo país</div><div class="mr-sub">EMBI+</div></div>
+              <div class="mr-val"><div id="riesgoVal">—</div><span class="pill" id="riesgoChg">—</span></div>
+            </div>
+          </div>
+
+          <!-- GLOBALES Y CRIPTO -->
+          <div class="card">
+            <span class="kicker">🌎 globales y cripto</span>
+            <div class="market-row">
+              <div class="mr-name">Bitcoin</div>
+              <div class="mr-val"><div id="btcVal">—</div><span class="pill" id="btcChg">—</span></div>
+            </div>
+            <div class="market-row">
+              <div class="mr-name">Ethereum</div>
+              <div class="mr-val"><div id="ethVal">—</div><span class="pill" id="ethChg">—</span></div>
+            </div>
+            <div class="market-row">
+              <div class="mr-name">Nasdaq 100</div>
+              <div class="mr-val"><div id="nasdaqVal">—</div><span class="pill" id="nasdaqChg">—</span></div>
+            </div>
+            <div class="market-row">
+              <div class="mr-name">S&amp;P 500</div>
+              <div class="mr-val"><div id="spVal">—</div><span class="pill" id="spChg">—</span></div>
+            </div>
+          </div>
+
+          <!-- ÍNDICE UVA -->
+          <div class="card">
+            <span class="kicker">📐 índices</span>
+            <div class="market-row">
+              <div><div class="mr-name">UVA</div><div class="mr-sub">ahorro/préstamo</div></div>
+              <div class="mr-val"><div id="uvaVal">—</div><span class="meta-line" id="uvaChg">—</span></div>
+            </div>
+            <div class="market-row">
+              <div><div class="mr-name">Inflación INDEC</div><div class="mr-sub" id="inflMeta">mensual</div></div>
+              <div class="mr-val"><div id="inflVal">—</div><span class="meta-line" id="inflIA">interanual —</span></div>
+            </div>
+          </div>
+
+          <!-- AVISO DE LO QUE FALTA -->
+          <div class="card-soon">
+            <div class="soon-emoji">⛽</div>
+            <p class="soon-title">Combustibles y otros índices</p>
+            <p class="soon-text">No tenemos API confiable para precios de combustibles (YPF/Shell/Axion) ni para el ICL de alquileres. Cuando integremos un backend que descargue los datos oficiales del Ministerio de Energía (datos.gob.ar), los agregamos.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANTALLA: CEDEARS -->
+      <section class="screen" data-screen="cedears">
+        <div class="scroll-area">
+          <!-- VALOR CARTERA -->
+          <div style="background:#14110D; border-radius:16px; padding:18px;">
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">📊 valor cartera (1 de cada uno)</span>
+            <p style="font-family:var(--font-display,Georgia,serif); font-size:28px; font-weight:600; margin:6px 0 4px; color:#F4ECE0;" id="carteraTotal">$—</p>
+            <p style="font-size:12px; color:#B8AE9D; margin:0 0 8px;" id="carteraUSD">≈ US$ — al MEP</p>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:0.5px solid rgba(255,255,255,0.1); color:#F4ECE0; font-size:13px;">
+              <span style="color:#B8AE9D;">Hoy</span>
+              <strong id="carteraHoy">—</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:0.5px solid rgba(255,255,255,0.1); color:#F4ECE0; font-size:13px;">
+              <span style="color:#B8AE9D;">30 días</span>
+              <strong id="cartera30d">—</strong>
+            </div>
+          </div>
+
+          <!-- SELECTOR DE CEDEARS -->
+          <div class="card">
+            <div class="selection-header">
+              <div>
+                <span class="kicker">⭐ elegí tus 5 CEDEARs</span>
+                <p class="meta-line">Tocá para agregar o sacar</p>
+              </div>
+              <span class="counter-pill" id="counterCedears">5 de 5</span>
+            </div>
+
+            <input type="text" class="search-input" placeholder="🔍 Buscar empresa o ticker..." id="searchCedears" />
+
+            <div class="filter-chips" id="filterChipsCedears">
+              <button class="chip active-filter" data-cat="all">Todos</button>
+              <button class="chip" data-cat="usa">🇺🇸 USA</button>
+              <button class="chip" data-cat="arg">🇦🇷 ARG</button>
+              <button class="chip" data-cat="tech">💻 Tech</button>
+              <button class="chip" data-cat="consumo">🛒 Consumo</button>
+              <button class="chip" data-cat="banca">🏦 Banca</button>
+              <button class="chip" data-cat="energia">⛽ Energía</button>
+            </div>
+
+            <div class="item-list" id="cedearList">
+              <!-- Renderizado por JS -->
+            </div>
+
+            <div class="source-line">
+              <span class="source-dot"></span>
+              <span id="byMaSource">BYMA · USD MEP cargando · cierre del día</span>
+            </div>
+          </div>
+
+          <!-- ALERTAS -->
+          <div class="card">
+            <span class="kicker">🔔 alertas activas</span>
+            <div class="alert-row">
+              <svg class="up" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              <span><strong>AAPL</strong> &gt; $9.200</span>
+              <span class="meta-line">activa</span>
+            </div>
+            <div class="alert-row">
+              <svg class="down" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              <span><strong>TSLA</strong> &lt; $5.800</span>
+              <span class="meta-line">activa</span>
+            </div>
+            <div class="alert-row">
+              <span class="alert-icon-blue">%</span>
+              <span><strong>NVDA</strong> ±5% diario</span>
+              <span class="meta-line">activa</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANTALLA: MI PLATA -->
+      <section class="screen" data-screen="plata">
+        <div class="scroll-area">
+          <div class="grid-2">
+            <button class="mini-card mini-card-button" onclick="Pulso.editIngresos()">
+              <div class="mini-card-label">Ingresos</div>
+              <div class="mini-card-val" id="ingresosVal">$1.850.000</div>
+            </button>
+            <div class="mini-card">
+              <div class="mini-card-label">Gastos</div>
+              <div class="mini-card-val" id="gastosVal">$0</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <p class="meta-line">balance del mes</p>
+            <p class="big-number green" id="balanceVal">$0</p>
+            <p class="meta-line" id="balanceMeta">— de tus ingresos</p>
+            <div class="progress"><div class="progress-fill" id="progressFill" style="width: 0%;"></div></div>
+          </div>
+
+          <!-- TIEMPO DE VIDA · NUEVA SECCIÓN -->
+          <div id="tiempoVidaCard" style="background:#14110D; border-radius:16px; padding:18px; margin-bottom:12px;">
+            <!-- Estado A: no activado (botón para arrancar) -->
+            <div id="tiempoVidaInactivo">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600; margin-bottom:8px;">⏰ tu vida en horas</div>
+              <p style="font-size:13px; color:#B8AE9D; margin:0 0 14px; line-height:1.45;">¿Cuántas horas de trabajo te consumió cada gasto este mes? Calculá tu valor hora y traducí tus gastos a tiempo de vida.</p>
+              <button type="button" onclick="Pulso.abrirSetupValorHora()" style="display:block; width:100%; padding:13px; background:#D4A848; color:#2A1F06; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">⏰ Calculá tu valor hora</button>
+            </div>
+
+            <!-- Estado B: activado (muestra valor hora + acciones) -->
+            <div id="tiempoVidaActivo" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">⏰ tu valor hora</span>
+                <button type="button" onclick="Pulso.abrirSetupValorHora()" style="background:rgba(255,255,255,0.12); color:#D4A848; border:none; font-size:10px; padding:5px 12px; border-radius:999px; cursor:pointer; font-family:inherit;">editar</button>
+              </div>
+              <p style="font-family:var(--font-display,Georgia,serif); font-size:28px; font-weight:600; margin:6px 0 4px; color:#F4ECE0;" id="valorHoraVal">$0 <span style="font-size:14px; color:#B8AE9D;">/hora</span></p>
+              <p style="font-size:12px; color:#B8AE9D; margin:0;" id="valorHoraSub">— mensuales · — hs/mes</p>
+            </div>
+          </div>
+
+          <!-- DESGLOSE EN TIEMPO · solo visible si valor hora está activado -->
+          <div class="card" id="desgloseTiempoCard" style="display: none;">
+            <span class="kicker">🕒 tu vida este mes se fue así</span>
+            <p class="meta-line" style="margin-bottom: 10px;">Cada gasto traducido a horas de trabajo</p>
+            <div id="desgloseTiempoList"></div>
+            <div class="time-footer" id="tiempoFooter"></div>
+          </div>
+
+          <div class="card">
+            <span class="kicker">⚡ cargar gasto rápido</span>
+            <p class="meta-line">Tocá una categoría</p>
+            <div class="cat-grid">
+              <button class="cat-tile" onclick="Pulso.openExpense('Súper', '🛒')">
+                <span class="cat-emoji">🛒</span>
+                <span class="cat-label">Súper</span>
+              </button>
+              <button class="cat-tile" onclick="Pulso.openExpense('Combustible', '⛽')">
+                <span class="cat-emoji">⛽</span>
+                <span class="cat-label">Combustible</span>
+              </button>
+              <button class="cat-tile" onclick="Pulso.openExpense('Esparcimiento', '🎉')">
+                <span class="cat-emoji">🎉</span>
+                <span class="cat-label">Esparcimiento</span>
+              </button>
+              <button class="cat-tile has-submenu" onclick="Pulso.openSubmenu('servicios')">
+                <span class="cat-emoji">💡</span>
+                <span class="cat-label">Servicios</span>
+              </button>
+              <button class="cat-tile has-submenu" onclick="Pulso.openSubmenu('impuestos')">
+                <span class="cat-emoji">📋</span>
+                <span class="cat-label">Imp. y tasas</span>
+              </button>
+              <button class="cat-tile has-submenu" onclick="Pulso.openSubmenu('mascotas')">
+                <span class="cat-emoji">🐾</span>
+                <span class="cat-label">Mascotas</span>
+              </button>
+              <button class="cat-tile cat-wide has-submenu" onclick="Pulso.openSubmenu('otros')">
+                <span class="cat-emoji">➕</span>
+                <span class="cat-label">Otros gastos</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <span class="kicker">🕐 últimos cargados</span>
+            <div id="recentList">
+              <p class="meta-line empty-state">Aún no cargaste gastos. Tocá una categoría arriba.</p>
+            </div>
+          </div>
+
+          <div style="background:#14110D; border-radius:16px; padding:18px;">
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">💡 tu balance equivale a</span>
+            <div class="equiv-grid" style="margin-top:10px;">
+              <div style="color:#F4ECE0;">💵 <strong id="equivDolares">—</strong><div style="color:#B8AE9D; font-size:11px;">al blue</div></div>
+              <div style="color:#F4ECE0;">💎 <strong id="equivMep">—</strong><div style="color:#B8AE9D; font-size:11px;">al MEP</div></div>
+              <div style="color:#F4ECE0;">₿ <strong id="equivBtc">—</strong><div style="color:#B8AE9D; font-size:11px;">bitcoins</div></div>
+              <div style="color:#F4ECE0;">📊 <strong id="equivCbt">—</strong><div style="color:#B8AE9D; font-size:11px;">canastas INDEC</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ============= MODAL ============= -->
+    <div class="modal-backdrop" id="modal" onclick="if(event.target===this)Pulso.closeModal()">
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-handle"></div>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <!-- ============= TOAST ============= -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- ============= NAV INFERIOR ============= -->
+    <nav class="nav-bar" role="navigation">
+      <button class="nav-item active" data-screen="home" onclick="Pulso.go('home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span>Pulso</span>
+      </button>
+      <button class="nav-item" data-screen="canasta" onclick="Pulso.go('canasta')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span>Changuito</span>
+      </button>
+      <button class="nav-item" data-screen="mercados" onclick="Pulso.go('mercados')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Mercados</span>
+      </button>
+      <button class="nav-item" data-screen="cedears" onclick="Pulso.go('cedears')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>CEDEARs</span>
+      </button>
+      <button class="nav-item" data-screen="plata" onclick="Pulso.go('plata')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        <span>Mi plata</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
