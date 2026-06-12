@@ -28,7 +28,7 @@ const ADMIN_PASS = "zelena2026";
 const uid = () => Math.random().toString(36).slice(2,9);
 const fmtDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
 const fmtNow = () => { const n=new Date(); return n.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); };
-const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"" });
+const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"" });
 
 const st = {
   btnGold:   { background:"#c9a84c", color:"#0d2340", border:"none", padding:"0.75rem 2rem", borderRadius:30, fontSize:"0.9rem", fontWeight:700, cursor:"pointer", letterSpacing:"0.05em", fontFamily:"'Playfair Display',serif" },
@@ -273,6 +273,16 @@ export default function App() {
           {waLink && (
             <a href={waLink} target="_blank" rel="noreferrer" style={st.btnWA}>
               <span style={{fontSize:"1.1rem"}}>💬</span> Contactar por WhatsApp
+            </a>
+          )}
+          {c.instagram && (
+            <a href={c.instagram} target="_blank" rel="noreferrer" style={{...st.btnWA,background:"#E1306C",textDecoration:"none"}}>
+              <span style={{fontSize:"1.1rem"}}>📸</span> Ver en Instagram
+            </a>
+          )}
+          {c.facebook && (
+            <a href={c.facebook} target="_blank" rel="noreferrer" style={{...st.btnWA,background:"#1877F2",textDecoration:"none"}}>
+              <span style={{fontSize:"1.1rem"}}>👍</span> Ver en Facebook
             </a>
           )}
           <button onClick={() => setScreen("pinentry")} style={{...st.btnGold,width:"100%"}}>
@@ -680,7 +690,8 @@ export default function App() {
     const [form, setForm] = useState({
       name:c.name, cat:c.cat, beneficio:c.beneficio,
       discountPin:c.discountPin||"0000", adminPass:c.adminPass||"pass2026",
-      whatsapp:c.whatsapp||"", maps:c.maps||"", foto:c.foto||"",
+      whatsapp:c.whatsapp||"", instagram:c.instagram||"", facebook:c.facebook||"",
+      maps:c.maps||"", foto:c.foto||"",
       color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0]
     });
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
@@ -758,6 +769,8 @@ export default function App() {
             </div>
             <div><div style={st.aLabel}>Beneficio</div><textarea value={form.beneficio} onChange={set("beneficio")} rows={3} style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/></div>
             <div><div style={st.aLabel}>WhatsApp (con código de país, ej: 5491155556666)</div><input value={form.whatsapp} onChange={set("whatsapp")} style={st.aInput} placeholder="5491155556666"/></div>
+            <div><div style={st.aLabel}>Instagram (URL del perfil)</div><input value={form.instagram} onChange={set("instagram")} style={st.aInput} placeholder="https://instagram.com/comercio"/></div>
+            <div><div style={st.aLabel}>Facebook (URL del perfil)</div><input value={form.facebook} onChange={set("facebook")} style={st.aInput} placeholder="https://facebook.com/comercio"/></div>
             <div><div style={st.aLabel}>Link Google Maps</div><input value={form.maps} onChange={set("maps")} style={st.aInput} placeholder="https://maps.google.com/..."/></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
               <div><div style={st.aLabel}>PIN Descuento (4 dígitos)</div><input value={form.discountPin} onChange={e => { if(/^\d{0,4}$/.test(e.target.value)) set("discountPin")(e); }} maxLength={4} inputMode="numeric" style={{...st.aInput,letterSpacing:"0.2em",textAlign:"center",fontSize:"1rem"}}/></div>
