@@ -272,18 +272,31 @@ export default function App() {
   }
 
   function DetailScreen() {
-    const s = detalleSello;
-    if(!s) return null;
+    const s = detailSello;
+    if(!s) return (
+      <div style={{background:"#f5f0e8",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem",padding:"2rem"}}>
+        <div style={{fontSize:"2rem"}}>⚠️</div>
+        <div style={{color:"#0d2340",fontSize:"0.9rem",fontFamily:"sans-serif",textAlign:"center"}}>No se encontró la información del beneficio.</div>
+        <button onClick={()=>setScreen("passport")} style={{...st.btnGold}}>← Volver al Pasaporte</button>
+      </div>
+    );
     const comercio = comercios.find(c=>c.id===s.comercioId);
-    if(!comercio) return null;
-    const cnt = huesped?.sellos[comercio.id]||0;
-    const color = comercio.color||s.color;
-    const icon = comercio.icon||s.icon;
+    if(!comercio) return (
+      <div style={{background:"#f5f0e8",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem",padding:"2rem"}}>
+        <div style={{fontSize:"2rem"}}>🏪</div>
+        <div style={{color:"#0d2340",fontSize:"0.9rem",fontFamily:"sans-serif",textAlign:"center"}}>El comercio ya no está disponible.</div>
+        <button onClick={()=>setScreen("passport")} style={{...st.btnGold}}>← Volver al Pasaporte</button>
+      </div>
+    );
+    const cnt = huesped?.sellos?.[comercio.id]||0;
+    const color = comercio.color||s.color||"#1a5c4a";
+    const icon = comercio.icon||s.icon||"🏪";
+    const catLabel = (comercio.cat||"").toUpperCase();
     return (
       <div className="fade" style={{background:"#f5f0e8",minHeight:"100vh",paddingBottom:"2rem",overflowY:"auto"}}>
         <div style={{background:"#0d2340",padding:"1rem 1.4rem",display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setScreen("passport")} style={{background:"none",border:"none",color:"#c9a84c",cursor:"pointer",fontSize:"1.1rem"}}>⟵</button>
-          <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>{comercio.cat.toUpperCase()}</span>
+          <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>{catLabel}</span>
           <div style={{width:24}}/>
         </div>
         <div style={{height:130,background:color,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
@@ -315,6 +328,12 @@ export default function App() {
 
   function QRScanComercioScreen() {
     const c = pendingComercio;
+    if(!c) return (
+      <div style={{background:"#0d2340",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem",padding:"2rem"}}>
+        <div style={{color:"#c9a84c",fontSize:"0.9rem",fontFamily:"sans-serif",textAlign:"center"}}>No hay comercio seleccionado.</div>
+        <button onClick={()=>setScreen("passport")} style={{...st.btnGold}}>← Volver</button>
+      </div>
+    );
     const color = c.color||"#1a5c4a";
     const icon = c.icon||"🏪";
     const [scanned, setScanned] = useState(false);
@@ -406,12 +425,18 @@ export default function App() {
   }
 
   function PinEntryScreen() {
+    const ref0 = useRef(); const ref1 = useRef(); const ref2 = useRef(); const ref3 = useRef();
+    const refs = [ref0, ref1, ref2, ref3];
     const [pin, setPin] = useState(["","","",""]);
     const [err, setErr] = useState("");
     const [confirmed, setConfirmed] = useState(false);
-    const refs = [useRef(),useRef(),useRef(),useRef()];
     const c = pendingComercio;
-    if(!c) return null;
+    if(!c) return (
+      <div style={{background:"#0d2340",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem",padding:"2rem"}}>
+        <div style={{color:"#c9a84c",fontSize:"0.9rem",fontFamily:"sans-serif",textAlign:"center"}}>No hay comercio seleccionado.</div>
+        <button onClick={()=>setScreen("passport")} style={{...st.btnGold}}>← Volver</button>
+      </div>
+    );
     const color = c.color||"#1a5c4a";
     const icon = c.icon||"🏪";
     const handleDigit = (i,v) => {
@@ -504,6 +529,12 @@ export default function App() {
 
   function ComercioPanelScreen() {
     const c = comercioActivo;
+    if(!c) return (
+      <div style={{background:"#0d2340",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem",padding:"2rem"}}>
+        <div style={{color:"#c9a84c",fontSize:"0.9rem",fontFamily:"sans-serif",textAlign:"center"}}>Sesión expirada. Iniciá sesión nuevamente.</div>
+        <button onClick={()=>setScreen("comerciologin")} style={{...st.btnGold}}>Volver al login</button>
+      </div>
+    );
     const color = c.color||"#1a5c4a";
     const icon = c.icon||"🏪";
     const [qrActivo, setQrActivo] = useState(false);
