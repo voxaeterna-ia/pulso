@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const S = {
   navy:"#0d2340", navy2:"#1a3558", gold:"#c9a84c", gold2:"#e8c97a",
@@ -74,10 +74,16 @@ input,button,select,textarea{font-family:'Playfair Display',serif;}
 `;
 
 export default function App() {
-  const [comercios, setComerciosState] = useState(COMERCIOS_INIT);
-  const [config, setConfig] = useState(CONFIG_INIT);
-  const [huespedes, setHuespedes] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
+  const ls = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
+  const [comercios, setComerciosState] = useState(() => ls("zv_comercios") || COMERCIOS_INIT);
+  const [config, setConfig] = useState(() => ls("zv_config") || CONFIG_INIT);
+  const [huespedes, setHuespedes] = useState(() => ls("zv_huespedes") || []);
+  const [currentUser, setCurrentUser] = useState(() => ls("zv_currentUser") || null);
+
+  useEffect(() => { try { localStorage.setItem("zv_comercios", JSON.stringify(comercios)); } catch {} }, [comercios]);
+  useEffect(() => { try { localStorage.setItem("zv_config", JSON.stringify(config)); } catch {} }, [config]);
+  useEffect(() => { try { localStorage.setItem("zv_huespedes", JSON.stringify(huespedes)); } catch {} }, [huespedes]);
+  useEffect(() => { try { localStorage.setItem("zv_currentUser", JSON.stringify(currentUser)); } catch {} }, [currentUser]);
   const [screen, setScreen] = useState("landing");
   const [pendingComercio, setPendingComercio] = useState(null);
   const [detailSello, setDetailSello] = useState(null);
@@ -139,7 +145,7 @@ export default function App() {
           <div style={{color:"#e8c97a",fontSize:"0.6rem",letterSpacing:"0.15em",marginTop:2}}>{config.edicion}</div>
           <button onClick={()=>setScreen("register")} style={{...st.btnGold,width:"100%",marginTop:"1rem"}}>Crear mi Pasaporte</button>
           {huespedes.length>0&&(
-            <button onClick={()=>{ setCurrentUser(huespedes[huespedes.length-1].id); setScreen("passport"); }} style={{...st.btnOutline,width:"100%"}}>Abrir Pasaporte Existente</button>
+            <button onClick={()=>{ const uid = currentUser || huespedes[huespedes.length-1].id; setCurrentUser(uid); setScreen("passport"); }} style={{...st.btnOutline,width:"100%"}}>Abrir Pasaporte Existente</button>
           )}
         </div>
         <div style={{display:"flex",gap:"0.7rem",marginTop:"0.5rem"}}>
