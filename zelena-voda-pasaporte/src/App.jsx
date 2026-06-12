@@ -4,7 +4,7 @@ import { collection, doc, setDoc, addDoc, deleteDoc, onSnapshot } from 'firebase
 
 const COLORS_OPCIONES = ["#1a5c4a","#1a4a5c","#5c3a1a","#3a1a5c","#1a5c2a","#5c1a1a","#1a3a5c","#5c4a1a","#5c1a3a","#1a5c5c"];
 const ICONS_OPCIONES  = ["🍽️","☕","🧀","🧘","🎮","🌅","🛍️","🏖️","🎵","🏋️","🎨","🍷","🎭","🌿","🐴","🎯"];
-const CATS = ["Gastronomía","Cafetería","Sabores Regionales","Relax","Diversión","Atardecer Zelena","Compras Locales","Playa & Aventura","Música & Arte","Deportes","Otros"];
+const CATS = ["Gastronomía","Cafetería","Sabores Regionales","Relax","Diversión","Compras Locales","Playa & Aventura","Música & Arte","Deportes","Seguridad","Restobar","Heladerías","Excursiones","Balnearios","Otros"];
 
 const COMERCIOS_INIT = [
   { id:"c1", name:"La Parrilla del Bosque", cat:"Gastronomía",        discountPin:"1234", adminPass:"parrilla2026", beneficio:"10% de descuento sobre el total de la cuenta. Válido de domingo a jueves, no acumulable con otras promociones.", whatsapp:"", maps:"", foto:"", color:"#1a5c4a", icon:"🍽️" },
@@ -296,10 +296,14 @@ export default function App() {
           <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>{(c.cat||"").toUpperCase()}</span>
           <div style={{width:24}}/>
         </div>
-        <div style={{height:130,background:color,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
-          {c.foto && <img src={c.foto} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.5}} alt="foto"/>}
-          <div style={{width:80,height:80,borderRadius:"50%",border:"3px solid rgba(255,255,255,0.6)",background:"rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"2.5rem",zIndex:1}}>{icon}</div>
-        </div>
+        {c.foto
+          ? <div style={{width:"100%",maxHeight:220,overflow:"hidden",background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <img src={c.foto} style={{width:"100%",height:"auto",maxHeight:220,objectFit:"contain",display:"block"}} alt="foto"/>
+            </div>
+          : <div style={{height:130,background:color,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {icon && <div style={{width:80,height:80,borderRadius:"50%",border:"3px solid rgba(255,255,255,0.6)",background:"rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"2.5rem"}}>{icon}</div>}
+            </div>
+        }
         <div style={{padding:"1.4rem",display:"flex",flexDirection:"column",gap:"0.9rem"}}>
           <div>
             <div style={{fontSize:"1.5rem",color:"#0d2340",fontStyle:"italic",lineHeight:1.1,marginBottom:3}}>{c.name}</div>
@@ -798,8 +802,9 @@ export default function App() {
               </select>
             </div>
             <div>
-              <div style={st.aLabel}>Ícono</div>
+              <div style={st.aLabel}>Ícono (opcional)</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                <button onClick={() => setForm(f => ({...f,icon:""}))} style={{width:36,height:36,borderRadius:8,border:`2px solid ${!form.icon?"#c9a84c":"#e0d8c8"}`,background:!form.icon?"#faf4e8":"white",fontSize:"0.6rem",fontFamily:"sans-serif",color:"#888",cursor:"pointer"}}>ninguno</button>
                 {ICONS_OPCIONES.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({...f,icon:ic}))} style={{width:36,height:36,borderRadius:8,border:`2px solid ${form.icon===ic?"#c9a84c":"#e0d8c8"}`,background:form.icon===ic?"#faf4e8":"white",fontSize:"1.2rem",cursor:"pointer"}}>{ic}</button>
                 ))}
