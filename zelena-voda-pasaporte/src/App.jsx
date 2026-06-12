@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { db } from './firebase.js';
+import { collection, doc, setDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 const COLORS_OPCIONES = ["#1a5c4a","#1a4a5c","#5c3a1a","#3a1a5c","#1a5c2a","#5c1a1a","#1a3a5c","#5c4a1a","#5c1a3a","#1a5c5c"];
 const ICONS_OPCIONES  = ["🍽️","☕","🧀","🧘","🎮","🌅","🛍️","🏖️","🎵","🏋️","🎨","🍷","🎭","🌿","🐴","🎯"];
@@ -58,22 +60,69 @@ input,button,select,textarea{font-family:'Playfair Display',serif;}
 
 export default function App() {
   const ls = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
-  const [comercios, setComerciosState] = useState(() => (ls("zv_comercios") || COMERCIOS_INIT).map(migrateComercio));
-  const [config, setConfig]     = useState(() => ({ ...CONFIG_INIT, ...(ls("zv_config") || {}) }));
-  const [huespedes, setHuespedes] = useState(() => ls("zv_huespedes") || []);
-  const [usos, setUsos]         = useState(() => ls("zv_usos") || []);
+  const [comercios, setComerciosState] = useState([]);
+  const [config, setConfig]     = useState(CONFIG_INIT);
+  const [huespedes, setHuespedes] = useState([]);
+  const [usos, setUsos]         = useState([]);
   const [currentUser, setCurrentUser] = useState(() => ls("zv_currentUser") || null);
   const [screen, setScreen]     = useState("landing");
   const [pendingComercio, setPendingComercio] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
   const [comercioActivo, setComercioActivo] = useState(null);
   const [toast, setToast]       = useState("");
+  const [loading, setLoading]   = useState(true);
 
-  useEffect(() => { try { localStorage.setItem("zv_comercios",  JSON.stringify(comercios));  } catch {} }, [comercios]);
-  useEffect(() => { try { localStorage.setItem("zv_config",     JSON.stringify(config));     } catch {} }, [config]);
-  useEffect(() => { try { localStorage.setItem("zv_huespedes",  JSON.stringify(huespedes));  } catch {} }, [huespedes]);
-  useEffect(() => { try { localStorage.setItem("zv_usos",       JSON.stringify(usos));       } catch {} }, [usos]);
-  useEffect(() => { try { localStorage.setItem("zv_currentUser",JSON.stringify(currentUser));} catch {} }, [currentUser]);
+  useEffect(() => { try { localStorage.setItem("zv_currentUser", JSON.stringify(currentUser)); } catch {} }, [currentUser]);
+
+  // Firestore writes
+  const fsComercio  = c   => setDoc(doc(db, 'comercios', c.id), c);
+  const fsDelComercio = id => deleteDoc(doc(db, 'comercios', id));
+  const fsConfig    = cfg => setDoc(doc(db, 'config', 'hotel'), cfg);
+  const fsHuesped   = h   => setDoc(doc(db, 'huespedes', h.id), h);
+  const fsAddUso    = uso => setDoc(doc(db, 'usos', uso.id), uso);
+
+  // Firestore real-time listeners
+  useEffect(() => {
+    const loaded = { c:false, cfg:false, h:false, u:false };
+    const check = () => { if (Object.values(loaded).every(Boolean)) setLoading(false); };
+
+    let seeded = false;
+    const unC = onSnapshot(collection(db, 'comercios'), async snap => {
+      if (snap.empty && !seeded) {
+        seeded = true;
+        for (const c of COMERCIOS_INIT.map(migrateComercio)) await setDoc(doc(db,'comercios',c.id), c);
+      } else if (!snap.empty) {
+        setComerciosState(snap.docs.map(d => ({...d.data(), id:d.id})).map(migrateComercio));
+      }
+      loaded.c = true; check();
+    });
+
+    const unCfg = onSnapshot(doc(db, 'config', 'hotel'), async snap => {
+      if (!snap.exists()) await setDoc(doc(db,'config','hotel'), CONFIG_INIT);
+      else setConfig({ ...CONFIG_INIT, ...snap.data() });
+      loaded.cfg = true; check();
+    });
+
+    const unH = onSnapshot(collection(db, 'huespedes'), snap => {
+      setHuespedes(snap.docs.map(d => ({...d.data(), id:d.id})));
+      loaded.h = true; check();
+    });
+
+    const unU = onSnapshot(collection(db, 'usos'), snap => {
+      setUsos(snap.docs.map(d => ({...d.data(), id:d.id})));
+      loaded.u = true; check();
+    });
+
+    return () => { unC(); unCfg(); unH(); unU(); };
+  }, []);
+
+  if (loading) return (
+    <div style={{minHeight:"100vh",background:"#0d2340",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"1rem"}}>
+      <div style={{width:60,height:60,border:"3px solid #c9a84c",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{color:"#e8c97a",fontSize:"0.72rem",fontFamily:"sans-serif",letterSpacing:"0.15em"}}>CARGANDO...</div>
+    </div>
+  );
 
   const isMobile = window.innerWidth <= 480 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   const huesped  = huespedes.find(h => h.id === currentUser);
@@ -137,11 +186,11 @@ export default function App() {
     const [form, setForm] = useState({nombre:"",apellido:"",fnac:"",desde:"",hasta:""});
     const [err, setErr]   = useState("");
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
-    const submit = () => {
+    const submit = async () => {
       if (!form.nombre||!form.apellido||!form.fnac||!form.desde||!form.hasta) return setErr("Completá todos los campos.");
       if (form.desde > form.hasta) return setErr("Las fechas de estadía no son válidas.");
       const h = {id:uid(),nombre:form.nombre,apellido:form.apellido,fnac:form.fnac,desde:form.desde,hasta:form.hasta,creado:new Date().toISOString().slice(0,10)};
-      setHuespedes(hs => [...hs, h]); setCurrentUser(h.id); setScreen("passport");
+      await fsHuesped(h); setCurrentUser(h.id); setScreen("passport");
     };
     return (
       <div className="fade" style={{background:"#0d2340",minHeight:"100vh",padding:"2rem 1.5rem",display:"flex",flexDirection:"column",alignItems:"center",gap:"1.2rem"}}>
@@ -314,12 +363,12 @@ export default function App() {
       const np = [...pin]; np[i] = v; setPin(np);
       if (v && i < 3) refs[i+1].current?.focus();
     };
-    const confirm = () => {
+    const confirm = async () => {
       const cFresh = comercios.find(x => x.id === c.id);
       if (pin.join("") !== cFresh.discountPin) { setErr("PIN incorrecto. Pedíselo al comerciante."); setPin(["","","",""]); refs[0].current?.focus(); return; }
       setErr(""); setConfirmed(true);
       const uso = { id:uid(), comercioId:c.id, comercioName:c.name, comercioIcon:c.icon, huespedId:currentUser, huespedNombre:`${huesped.nombre} ${huesped.apellido}`, fechaHora:fmtNow() };
-      setUsos(us => [...us, uso]);
+      await fsAddUso(uso);
       showToast("¡Descuento aplicado! ✓");
       setTimeout(() => { setPendingComercio(null); setScreen("passport"); }, 2200);
     };
@@ -416,21 +465,23 @@ export default function App() {
     const [passActual, setPassActual] = useState("");
     const [passErr,    setPassErr]    = useState("");
 
-    const guardarPin = () => {
+    const guardarPin = async () => {
       const cf = comercios.find(x => x.id===c.id);
       if (pinActual !== cf.discountPin) { setPinErr("PIN actual incorrecto."); return; }
       if (!/^\d{4}$/.test(nuevoPin)) { setPinErr("El nuevo PIN debe tener exactamente 4 dígitos."); return; }
-      setComerciosState(cs => cs.map(x => x.id===c.id ? {...x,discountPin:nuevoPin} : x));
-      setComercioActivo({...c,discountPin:nuevoPin});
+      const updated = {...cf, discountPin:nuevoPin};
+      await fsComercio(updated);
+      setComercioActivo(updated);
       setEditPin(false); setNuevoPin(""); setPinActual(""); setPinErr("");
       showToast("PIN de descuento actualizado ✓");
     };
-    const guardarPass = () => {
+    const guardarPass = async () => {
       const cf = comercios.find(x => x.id===c.id);
       if (passActual !== cf.adminPass) { setPassErr("Contraseña actual incorrecta."); return; }
       if (nuevaPass.length < 4) { setPassErr("La contraseña debe tener al menos 4 caracteres."); return; }
-      setComerciosState(cs => cs.map(x => x.id===c.id ? {...x,adminPass:nuevaPass} : x));
-      setComercioActivo({...c,adminPass:nuevaPass});
+      const updated = {...cf, adminPass:nuevaPass};
+      await fsComercio(updated);
+      setComercioActivo(updated);
       setEditPass(false); setNuevaPass(""); setPassActual(""); setPassErr("");
       showToast("Contraseña actualizada ✓");
     };
@@ -636,10 +687,10 @@ export default function App() {
             {comercios.map(c => {
               const tot = usos.filter(u => u.comercioId===c.id).length;
               return <ComercioCard key={c.id} c={c} tot={tot}
-                onSave={updated => setComerciosState(cs => cs.map(x => x.id===updated.id ? updated : x))}
-                onDelete={() => setComerciosState(cs => cs.filter(x => x.id!==c.id))}/>;
+                onSave={updated => fsComercio(updated)}
+                onDelete={() => fsDelComercio(c.id)}/>;
             })}
-            <button onClick={() => setComerciosState(cs => [...cs, {id:uid(),name:"Nuevo Comercio",cat:"Gastronomía",discountPin:"0000",adminPass:"pass2026",beneficio:"Describí el beneficio aquí.",whatsapp:"",maps:"",foto:"",color:COLORS_OPCIONES[cs.length%COLORS_OPCIONES.length],icon:ICONS_OPCIONES[cs.length%ICONS_OPCIONES.length]}])}
+            <button onClick={() => { const nc={id:uid(),name:"Nuevo Comercio",cat:"Gastronomía",discountPin:"0000",adminPass:"pass2026",beneficio:"Describí el beneficio aquí.",whatsapp:"",instagram:"",facebook:"",maps:"",foto:"",color:COLORS_OPCIONES[comercios.length%COLORS_OPCIONES.length],icon:ICONS_OPCIONES[comercios.length%ICONS_OPCIONES.length]}; fsComercio(nc); }}
               style={{...st.btnGold,width:"100%",marginTop:"0.5rem"}}>+ Agregar Comercio</button>
           </div>
         )}
@@ -653,7 +704,7 @@ export default function App() {
   function ConfigTab() {
     const [form, setForm] = useState({...config});
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
-    const guardar = () => { setConfig(form); showToast("Configuración guardada ✓"); };
+    const guardar = async () => { await fsConfig(form); showToast("Configuración guardada ✓"); };
     const handleLogo = e => {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
@@ -695,7 +746,7 @@ export default function App() {
       color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0]
     });
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
-    const save = () => { onSave({...c,...form}); setEditing(false); showToast("Comercio actualizado ✓"); };
+    const save = async () => { await fsComercio({...c,...form}); setEditing(false); showToast("Comercio actualizado ✓"); };
     const handleFoto = e => {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
