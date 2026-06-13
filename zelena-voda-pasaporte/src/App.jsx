@@ -911,16 +911,18 @@ export default function App() {
               </div>
             </div>
             {form.destacado && (
-              <div className="fade">
-                <div style={st.aLabel}>Texto del Voucher (editado solo por Admin Hotel)</div>
-                <textarea value={form.voucherTexto} onChange={set("voucherTexto")} rows={3} placeholder="Ej: 20% de descuento especial para huéspedes de Zelena Voda. Válido toda la temporada." style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/>
-                <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:4,lineHeight:1.4}}>Este texto es independiente del beneficio que edita el comerciante.</div>
-                <div style={{marginTop:"0.6rem"}}>
-                  <div style={st.aLabel}>Cantidad máxima de vouchers (0 = ilimitado)</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <input type="number" min={0} value={form.voucherLimit} onChange={e => setForm(f => ({...f,voucherLimit:Math.max(0,parseInt(e.target.value)||0)}))} style={{...st.aInput,width:100,textAlign:"center",fontSize:"1rem",fontFamily:"sans-serif"}}/>
-                    <span style={{fontSize:"0.68rem",color:"#888",fontFamily:"sans-serif"}}>{form.voucherLimit===0 ? "sin límite" : `se emiten hasta ${form.voucherLimit} vouchers`}</span>
+              <div className="fade" style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                <div>
+                  <div style={st.aLabel}>Cantidad máxima de vouchers</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <input type="number" min={0} value={form.voucherLimit} onChange={e => setForm(f => ({...f,voucherLimit:Math.max(0,parseInt(e.target.value)||0)}))} style={{...st.aInput,width:90,textAlign:"center",fontSize:"1.1rem",fontFamily:"sans-serif",fontWeight:700}}/>
+                    <span style={{fontSize:"0.7rem",color:form.voucherLimit===0?"#aaa":"#1a5c4a",fontFamily:"sans-serif",fontWeight:700}}>{form.voucherLimit===0 ? "Sin límite" : `Máximo ${form.voucherLimit} uso${form.voucherLimit!==1?"s":""}`}</span>
                   </div>
+                </div>
+                <div>
+                  <div style={st.aLabel}>Texto del Voucher (solo Admin Hotel)</div>
+                  <textarea value={form.voucherTexto} onChange={set("voucherTexto")} rows={3} placeholder="Ej: 20% de descuento especial para huéspedes de Zelena Voda." style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/>
+                  <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:3,lineHeight:1.4}}>Este texto es independiente del beneficio que edita el comerciante.</div>
                 </div>
               </div>
             )}
