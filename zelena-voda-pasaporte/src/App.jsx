@@ -30,7 +30,7 @@ const ADMIN_PASS = "zelena2026";
 const uid = () => Math.random().toString(36).slice(2,9);
 const fmtDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
 const fmtNow = () => { const n=new Date(); return n.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); };
-const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"", destacado: c.destacado||false, voucherTexto: c.voucherTexto||"" });
+const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"", destacado: c.destacado||false, voucherTexto: c.voucherTexto||"", voucherLimit: c.voucherLimit||0 });
 
 const st = {
   btnGold:   { background:"#c9a84c", color:"#0d2340", border:"none", padding:"0.75rem 2rem", borderRadius:30, fontSize:"0.9rem", fontWeight:700, cursor:"pointer", letterSpacing:"0.05em", fontFamily:"'Playfair Display',serif" },
@@ -365,9 +365,20 @@ export default function App() {
               <span style={{fontSize:"1.1rem"}}>👍</span> Ver en Facebook
             </a>
           )}
-          <button onClick={() => setScreen("pinentry")} style={{...st.btnGold,width:"100%"}}>
-            Usar descuento — Ingresar PIN 🔑
-          </button>
+          {(() => {
+            const totalUsos = usos.filter(u => u.comercioId===c.id).length;
+            const lim = c.voucherLimit||0;
+            const agotado = voucherMode && lim > 0 && totalUsos >= lim;
+            const restantes = voucherMode && lim > 0 ? lim - totalUsos : null;
+            return agotado
+              ? <div style={{background:"#eee",borderRadius:12,padding:"1rem",textAlign:"center",color:"#999",fontFamily:"sans-serif",fontSize:"0.8rem"}}>🚫 Los vouchers de esta promoción ya se agotaron</div>
+              : <>
+                  {restantes !== null && <div style={{background:"rgba(201,168,76,0.12)",borderRadius:10,padding:"0.5rem 0.9rem",textAlign:"center",color:"#4a3728",fontFamily:"sans-serif",fontSize:"0.72rem",border:"1px solid rgba(201,168,76,0.3)"}}>✨ Quedan <strong>{restantes}</strong> voucher{restantes!==1?"s":""} disponible{restantes!==1?"s":""}</div>}
+                  <button onClick={() => setScreen("pinentry")} style={{...st.btnGold,width:"100%"}}>
+                    Usar descuento — Ingresar PIN 🔑
+                  </button>
+                </>;
+          })()}
         </div>
       </div>
     );
@@ -396,6 +407,10 @@ export default function App() {
     };
     const confirm = async () => {
       const cFresh = comercios.find(x => x.id === c.id);
+      if (voucherMode) {
+        const totalUsos = usos.filter(u => u.comercioId===c.id).length;
+        if (cFresh.voucherLimit > 0 && totalUsos >= cFresh.voucherLimit) { setErr("Los vouchers de esta promoción ya se agotaron."); return; }
+      }
       if (pin.join("") !== cFresh.discountPin) { setErr("PIN incorrecto. Pedíselo al comerciante."); setPin(["","","",""]); refs[0].current?.focus(); return; }
       setErr(""); setConfirmed(true);
       const uso = { id:uid(), comercioId:c.id, comercioName:c.name, comercioIcon:c.icon, huespedId:currentUser, huespedNombre:`${huesped.nombre} ${huesped.apellido}`, fechaHora:fmtNow() };
@@ -801,7 +816,7 @@ export default function App() {
       whatsapp:c.whatsapp||"", instagram:c.instagram||"", facebook:c.facebook||"",
       maps:c.maps||"", foto:c.foto||"",
       color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0],
-      destacado:c.destacado||false, voucherTexto:c.voucherTexto||""
+      destacado:c.destacado||false, voucherTexto:c.voucherTexto||"", voucherLimit:c.voucherLimit||0
     });
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
     const save = async () => { await fsComercio({...c,...form}); setEditing(false); showToast("Comercio actualizado ✓"); };
@@ -900,6 +915,13 @@ export default function App() {
                 <div style={st.aLabel}>Texto del Voucher (editado solo por Admin Hotel)</div>
                 <textarea value={form.voucherTexto} onChange={set("voucherTexto")} rows={3} placeholder="Ej: 20% de descuento especial para huéspedes de Zelena Voda. Válido toda la temporada." style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/>
                 <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:4,lineHeight:1.4}}>Este texto es independiente del beneficio que edita el comerciante.</div>
+                <div style={{marginTop:"0.6rem"}}>
+                  <div style={st.aLabel}>Cantidad máxima de vouchers (0 = ilimitado)</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <input type="number" min={0} value={form.voucherLimit} onChange={e => setForm(f => ({...f,voucherLimit:Math.max(0,parseInt(e.target.value)||0)}))} style={{...st.aInput,width:100,textAlign:"center",fontSize:"1rem",fontFamily:"sans-serif"}}/>
+                    <span style={{fontSize:"0.68rem",color:"#888",fontFamily:"sans-serif"}}>{form.voucherLimit===0 ? "sin límite" : `se emiten hasta ${form.voucherLimit} vouchers`}</span>
+                  </div>
+                </div>
               </div>
             )}
             <div style={{display:"flex",gap:"0.6rem"}}>
@@ -930,28 +952,39 @@ export default function App() {
         <div style={{padding:"1rem 1.2rem 0",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
           {dest.map(comercio => {
             const cnt = usos.filter(u => u.comercioId===comercio.id && u.huespedId===h.id).length;
+            const totalUsos = usos.filter(u => u.comercioId===comercio.id).length;
+            const lim = comercio.voucherLimit||0;
+            const agotado = lim > 0 && totalUsos >= lim;
+            const restantes = lim > 0 ? lim - totalUsos : null;
             return (
-              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setVoucherMode(true); setScreen("detail"); }}
-                style={{background:"white",borderRadius:14,border:"2px solid #c9a84c",overflow:"hidden",boxShadow:"0 2px 10px rgba(201,168,76,0.15)",cursor:"pointer"}}>
-                <div style={{background:"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.35rem 0.9rem",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:"0.7rem"}}>✨</span>
-                  <span style={{fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",color:"#0d2340",textTransform:"uppercase"}}>Voucher Destacado</span>
+              <div key={comercio.id} onClick={() => { if (!agotado) { setPendingComercio(comercio); setVoucherMode(true); setScreen("detail"); } }}
+                style={{background:agotado?"#f5f5f5":"white",borderRadius:14,border:`2px solid ${agotado?"#ccc":"#c9a84c"}`,overflow:"hidden",boxShadow:"0 2px 10px rgba(201,168,76,0.15)",cursor:agotado?"default":"pointer",opacity:agotado?0.7:1}}>
+                <div style={{background:agotado?"#ccc":"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.35rem 0.9rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:"0.7rem"}}>{agotado?"🚫":"✨"}</span>
+                    <span style={{fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",color:"#0d2340",textTransform:"uppercase"}}>{agotado?"Voucher Agotado":"Voucher Destacado"}</span>
+                  </div>
+                  {restantes !== null && !agotado && (
+                    <span style={{fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,color:"#0d2340",background:"rgba(0,0,0,0.12)",borderRadius:10,padding:"1px 7px"}}>{restantes} disponible{restantes!==1?"s":""}</span>
+                  )}
                 </div>
                 <div style={{display:"flex",alignItems:"stretch"}}>
-                  <div style={{width:60,background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style={{width:60,background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:agotado?0.5:1}}>
                     <span style={{fontSize:"1.6rem"}}>{comercio.icon||"🏪"}</span>
                   </div>
                   <div style={{flex:1,padding:"0.75rem 0.9rem",minWidth:0}}>
                     <div style={{fontSize:"0.52rem",color:"#888",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase"}}>{comercio.cat}</div>
-                    <div style={{fontSize:"0.92rem",color:"#0d2340",fontStyle:"italic",lineHeight:1.2,margin:"2px 0"}}>{comercio.name}</div>
-                    <div style={{fontSize:"0.65rem",color:"#555",fontFamily:"sans-serif",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{comercio.voucherTexto||comercio.beneficio}</div>
+                    <div style={{fontSize:"0.92rem",color:agotado?"#aaa":"#0d2340",fontStyle:"italic",lineHeight:1.2,margin:"2px 0"}}>{comercio.name}</div>
+                    <div style={{fontSize:"0.65rem",color:agotado?"#bbb":"#555",fontFamily:"sans-serif",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{agotado?"Los vouchers para esta promoción ya fueron utilizados.":comercio.voucherTexto||comercio.beneficio}</div>
                   </div>
                   <div style={{width:46,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderLeft:"1px dashed #ede5d4",flexShrink:0,gap:3}}>
-                    {cnt > 0
-                      ? <div style={{width:32,height:32,borderRadius:"50%",background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <span style={{color:"white",fontSize:"0.7rem",fontFamily:"sans-serif",fontWeight:700}}>×{cnt}</span>
-                        </div>
-                      : <span style={{fontSize:"0.55rem",color:"#c9a84c"}}>›</span>
+                    {agotado
+                      ? <span style={{fontSize:"1rem"}}>🚫</span>
+                      : cnt > 0
+                        ? <div style={{width:32,height:32,borderRadius:"50%",background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <span style={{color:"white",fontSize:"0.7rem",fontFamily:"sans-serif",fontWeight:700}}>×{cnt}</span>
+                          </div>
+                        : <span style={{fontSize:"0.55rem",color:"#c9a84c"}}>›</span>
                     }
                   </div>
                 </div>
