@@ -20,13 +20,18 @@ if (!ZIP_PATH || !fs.existsSync(ZIP_PATH)) {
   process.exit(1);
 }
 
-// Nombres de cadenas que nos interesan (mapeadas a claves del frontend)
-const CADENAS_OBJETIVO = {
-  dia:       ['dia', 'super dia', 'supermercados dia'],
+// Mapeo de nombres conocidos del SEPA a claves del frontend
+const CADENAS_MAP = {
+  dia:       ['dia', 'superdia', 'supermercadosdia'],
   carrefour: ['carrefour'],
   disco:     ['disco'],
   jumbo:     ['jumbo'],
-  vea:       ['vea']
+  vea:       ['vea'],
+  coto:      ['coto'],
+  walmart:   ['walmart', 'changomas', 'changomás'],
+  toledo:    ['toledo'],
+  makro:     ['makro'],
+  hiper:     ['hiper'],
 };
 
 function progress(pct, msg) {
@@ -34,13 +39,14 @@ function progress(pct, msg) {
 }
 
 function normalizarNombreCadena(nombre) {
-  const n = nombre.toLowerCase().replace(/[^a-z]/g, '');
-  for (const [clave, variantes] of Object.entries(CADENAS_OBJETIVO)) {
+  const n = nombre.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const [clave, variantes] of Object.entries(CADENAS_MAP)) {
     for (const v of variantes) {
-      if (n.includes(v.replace(/[^a-z]/g, ''))) return clave;
+      if (n.includes(v.replace(/[^a-z0-9]/g, ''))) return clave;
     }
   }
-  return null;
+  // Si no matchea ninguna conocida, usamos el nombre limpio como clave
+  return n.slice(0, 30) || 'otro';
 }
 
 // Parsear una línea CSV con separador pipe, respetando campos vacíos
@@ -159,11 +165,6 @@ async function main() {
       const pct = Math.round(5 + (idx / zipEntries.length) * 85);
       progress(pct, `Procesando ${entry.entryName}...`);
 
-      if (!cadena) {
-        progress(pct, `Saltando ${entry.entryName} (cadena no reconocida)`);
-        continue;
-      }
-
       let innerZip;
       try {
         innerZip = new AdmZip(entry.getData());
@@ -196,11 +197,6 @@ async function main() {
 
       const pct = Math.round(5 + (idx / csvEntries.length) * 85);
       progress(pct, `Procesando ${entry.entryName}...`);
-
-      if (!cadena) {
-        progress(pct, `Saltando ${entry.entryName} (cadena no reconocida)`);
-        continue;
-      }
 
       const filas = db.transaction(() =>
         procesarCSV(entry.getData(), cadena, db, insertStmt)
