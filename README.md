@@ -1,203 +1,46 @@
-/* ============================================
-   PULSO · PERSISTENCIA LOCAL
-   Guarda en localStorage del navegador
-   ============================================ */
+# Pulso · Tu tablero de mando argentino
 
-const PulsoStore = {
+App de finanzas argentinas: dólar, inflación, changuito con precios reales en 5 supermercados, CEDEARs en tiempo real y seguimiento de gastos con "Tiempo de Vida".
 
-  KEYS: {
-    productos: 'pulso_productos_v1',
-    cedears: 'pulso_cedears_v1',
-    gastos: 'pulso_gastos_v1',
-    ingresos: 'pulso_ingresos_v1',
-    valorHora: 'pulso_valor_hora_v1',
-    streak: 'pulso_streak_v1',
-    lastVote: 'pulso_lastvote_v1',
-    onboarded: 'pulso_onboarded_v1'
-  },
+## Estructura del proyecto
 
-  // ============= GENÉRICO =============
-  get(key, defaultVal = null) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : defaultVal;
-    } catch (e) {
-      console.warn('[Pulso] Error leyendo storage:', key, e);
-      return defaultVal;
-    }
-  },
+```
+pulso/
+├── index.html          # HTML principal (PWA mobile-first)
+├── manifest.json       # Manifest PWA
+├── css/
+│   └── styles.css      # Estilos (paleta editorial, dark cards, animaciones)
+├── js/
+│   ├── data.js         # PulsoData — catálogo de CEDEARs, submenús, headlines
+│   ├── api.js          # PulsoAPI — DolarAPI, ArgentinaDatos, CoinGecko, data912, Yahoo Finance
+│   ├── storage.js      # PulsoStore — persistencia en localStorage
+│   ├── ui.js           # PulsoUI — helpers de formato, modal, toast, score
+│   └── app.js          # Pulso — lógica principal y renders
+└── zelena-voda-pasaporte/   # Sub-proyecto separado (app de pasaportes, React+Vite)
+```
 
-  set(key, val) {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-      return true;
-    } catch (e) {
-      console.warn('[Pulso] Error escribiendo storage:', key, e);
-      return false;
-    }
-  },
+## Deploy
 
-  // ============= PRODUCTOS DEL CHANGUITO =============
-  // Ahora guardamos OBJETOS completos (no solo IDs) porque vienen de búsqueda real
-  // Cada producto tiene: id (interno), ean, nombre, marca, imagen, supermercado origen
-  getProductos() {
-    return this.get(this.KEYS.productos, []);
-  },
+La app es 100% estática salvo los proxies de precios y BYMA. Para funcionalidad completa:
 
-  setProductos(arr) {
-    this.set(this.KEYS.productos, arr);
-  },
+- **Vercel (recomendado)**: drag & drop del directorio. Los proxies `/api/precios` y `/api/byma` funcionan automáticamente.
+- **Abrir localmente**: abrí `index.html` directamente. El changuito de búsqueda no funcionará (necesita el proxy), pero todos los demás datos (dólar, inflación, CEDEARs, gastos) sí.
 
-  // Agregar producto al changuito (devuelve true/false/null)
-  agregarProducto(producto) {
-    const list = this.getProductos();
-    if (list.length >= 10) return null; // ya hay 10
-    if (list.some(p => p.id === producto.id || (producto.ean && p.ean === producto.ean))) {
-      return false; // ya está
-    }
-    list.push({
-      ...producto,
-      addedAt: Date.now()
-    });
-    this.setProductos(list);
-    return true;
-  },
+## Fuentes de datos
 
-  // Sacar del changuito
-  sacarProducto(idOrEan) {
-    const list = this.getProductos();
-    const nuevos = list.filter(p => p.id !== idOrEan && p.ean !== idOrEan);
-    this.setProductos(nuevos);
-    return list.length !== nuevos.length;
-  },
+| Dato | Fuente | Latencia |
+|---|---|---|
+| Dólar (blue, MEP, CCL...) | DolarAPI | ~segundos |
+| Inflación / Riesgo país / UVA | ArgentinaDatos | ~segundos |
+| Bitcoin / Ethereum | CoinGecko | ~segundos |
+| CEDEARs | BYMA Open Data (via proxy) → data912 (fallback) | 1-5 min / ~2 hs |
+| Merval / Nasdaq / S&P 500 | Yahoo Finance | ~segundos |
+| Precios supermercados | Proxy Vercel (Día, Carrefour, Disco, Jumbo, Vea) | ~segundos |
 
-  // ¿Ya está en el changuito?
-  tieneProducto(idOrEan) {
-    return this.getProductos().some(p => p.id === idOrEan || p.ean === idOrEan);
-  },
+## Módulos JS
 
-  // ============= CEDEARS =============
-  getCedears() {
-    return this.get(this.KEYS.cedears, PulsoData.cedearsDefault);
-  },
-
-  setCedears(ids) {
-    this.set(this.KEYS.cedears, ids);
-  },
-
-  toggleCedear(id) {
-    const list = this.getCedears();
-    if (list.includes(id)) {
-      this.setCedears(list.filter(x => x !== id));
-      return false;
-    } else {
-      if (list.length >= 5) return null;
-      this.setCedears([...list, id]);
-      return true;
-    }
-  },
-
-  // ============= GASTOS =============
-  getGastos() {
-    return this.get(this.KEYS.gastos, []);
-  },
-
-  addGasto(gasto) {
-    const gastos = this.getGastos();
-    gastos.unshift({
-      ...gasto,
-      id: 'g_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      createdAt: Date.now()
-    });
-    this.set(this.KEYS.gastos, gastos);
-    this.bumpStreak();
-    return gastos[0];
-  },
-
-  removeGasto(id) {
-    const gastos = this.getGastos().filter(g => g.id !== id);
-    this.set(this.KEYS.gastos, gastos);
-  },
-
-  // Total de gastos del mes actual
-  getGastosDelMes() {
-    const ahora = new Date();
-    const mes = ahora.getMonth();
-    const anio = ahora.getFullYear();
-    return this.getGastos().filter(g => {
-      const f = new Date(g.fecha + 'T12:00:00');
-      return f.getMonth() === mes && f.getFullYear() === anio;
-    });
-  },
-
-  getTotalMes() {
-    return this.getGastosDelMes().reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
-  },
-
-  // ============= INGRESOS =============
-  getIngresos() {
-    return this.get(this.KEYS.ingresos, 1850000);
-  },
-
-  setIngresos(monto) {
-    this.set(this.KEYS.ingresos, monto);
-  },
-
-  // ============= VALOR HORA =============
-  // Estructura: { ingresoMensual, horasMes, valorHora, activado }
-  getValorHora() {
-    return this.get(this.KEYS.valorHora, { activado: false });
-  },
-
-  setValorHora(ingresoMensual, horasMes) {
-    const valorHora = ingresoMensual / horasMes;
-    const data = {
-      ingresoMensual,
-      horasMes,
-      valorHora,
-      activado: true,
-      updatedAt: Date.now()
-    };
-    this.set(this.KEYS.valorHora, data);
-    return data;
-  },
-
-  desactivarValorHora() {
-    this.set(this.KEYS.valorHora, { activado: false });
-  },
-
-  // ============= STREAK (racha de uso) =============
-  getStreak() {
-    const data = this.get(this.KEYS.streak, { dias: 12, lastDate: null });
-    return data;
-  },
-
-  bumpStreak() {
-    const today = new Date().toDateString();
-    const data = this.getStreak();
-    if (data.lastDate === today) return data;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isConsecutive = data.lastDate === yesterday.toDateString();
-    const newDias = isConsecutive ? data.dias + 1 : (data.lastDate ? 1 : data.dias);
-    const newData = { dias: newDias, lastDate: today };
-    this.set(this.KEYS.streak, newData);
-    return newData;
-  },
-
-  // ============= VOTO ÚLTIMO =============
-  getLastVote() {
-    return this.get(this.KEYS.lastVote, null);
-  },
-
-  setLastVote(opcion) {
-    this.set(this.KEYS.lastVote, { opcion, fecha: Date.now() });
-  },
-
-  // ============= RESET COMPLETO (debug) =============
-  resetAll() {
-    Object.values(this.KEYS).forEach(k => localStorage.removeItem(k));
-  }
-};
-
-window.PulsoStore = PulsoStore;
+- **PulsoData** — datos estáticos: catálogo de productos, CEDEARs metadata, submenús de gastos, headlines
+- **PulsoAPI** — todas las llamadas a APIs externas, con fallback demo si fallan
+- **PulsoStore** — `localStorage` con keys versionadas; gastos, ingresos, valor hora, streak, CEDEARs favoritos
+- **PulsoUI** — `fmt()`, `fmtPct()`, `calcPulso()`, `toast()`, `showModal()`, `montoATiempo()`, etc.
+- **Pulso** — objeto principal: `init()`, renders por sección, modales de gastos, changuito, valor hora
