@@ -458,7 +458,7 @@ const Pulso = {
       });
     });
 
-    const productos = Object.values(productosPorEan).slice(0, 12);
+    const productos = Object.values(productosPorEan).slice(0, 20);
     this.searchState = { query, results: productos };
 
     title.textContent = `resultados para "${query}" · ${productos.length} productos`;
