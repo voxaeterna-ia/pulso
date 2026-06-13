@@ -141,15 +141,17 @@ export default function App() {
     );
   }
 
-  if (!isMobile) return (
+  const [forceDesktop, setForceDesktop] = useState(false);
+  if (!isMobile && !forceDesktop) return (
     <div style={{minHeight:"100vh",background:"#0d2340",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem",gap:"1.5rem"}}>
       <div style={{width:80,height:80,border:"2px solid #c9a84c",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}><LogoSVG size={48}/></div>
       <div style={{color:"#c9a84c",fontSize:"1.5rem",fontWeight:700,letterSpacing:"0.12em",textAlign:"center"}}>{config.hotelNombre}</div>
       <div style={{color:"#e8c97a",fontSize:"0.65rem",letterSpacing:"0.22em",textAlign:"center"}}>PASAPORTE DE BENEFICIOS</div>
       <div style={{width:50,height:1,background:"#c9a84c"}}/>
       <div style={{fontSize:"3.5rem"}}>📱</div>
-      <div style={{color:"white",fontSize:"1.1rem",fontStyle:"italic",textAlign:"center",maxWidth:360,lineHeight:1.5}}>Esta app está diseñada<br/>exclusivamente para celulares.</div>
+      <div style={{color:"white",fontSize:"1.1rem",fontStyle:"italic",textAlign:"center",maxWidth:360,lineHeight:1.5}}>Esta app está diseñada<br/>para celulares.</div>
       <div style={{color:"#e8c97a",fontSize:"0.78rem",fontFamily:"sans-serif",textAlign:"center",maxWidth:320,lineHeight:1.7}}>Escaneá el QR con tu teléfono<br/>o ingresá desde el navegador de tu celular.</div>
+      <button onClick={() => setForceDesktop(true)} style={{background:"none",border:"1px solid rgba(201,168,76,0.35)",color:"rgba(201,168,76,0.6)",fontSize:"0.65rem",fontFamily:"sans-serif",letterSpacing:"0.1em",cursor:"pointer",padding:"0.6rem 1.4rem",borderRadius:20,marginTop:"0.5rem"}}>Continuar desde computadora →</button>
       <div style={{color:"rgba(201,168,76,0.3)",fontSize:"0.58rem",fontFamily:"sans-serif",letterSpacing:"0.15em"}}>ZELENA VODA — VILLA GESELL</div>
     </div>
   );
