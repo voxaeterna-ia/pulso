@@ -315,17 +315,15 @@
         <div class="scroll-area">
           <!-- VALOR CARTERA -->
           <div style="background:#14110D; border-radius:16px; padding:18px;">
-            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">📊 valor cartera (1 de cada uno)</span>
+            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#D4A848; font-weight:600;">📊 valor cartera</span>
             <p style="font-family:var(--font-display,Georgia,serif); font-size:28px; font-weight:600; margin:6px 0 4px; color:#F4ECE0;" id="carteraTotal">$—</p>
             <p style="font-size:12px; color:#B8AE9D; margin:0 0 8px;" id="carteraUSD">≈ US$ — al MEP</p>
             <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:0.5px solid rgba(255,255,255,0.1); color:#F4ECE0; font-size:13px;">
               <span style="color:#B8AE9D;">Hoy</span>
               <strong id="carteraHoy">—</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:6px 0; border-top:0.5px solid rgba(255,255,255,0.1); color:#F4ECE0; font-size:13px;">
-              <span style="color:#B8AE9D;">30 días</span>
-              <strong id="cartera30d">—</strong>
-            </div>
+            <!-- Detalle por ticker con inputs de cantidad -->
+            <div id="carteraDetalle" style="margin-top:10px; border-top:0.5px solid rgba(255,255,255,0.1); padding-top:10px;"></div>
           </div>
 
           <!-- SELECTOR DE CEDEARS -->

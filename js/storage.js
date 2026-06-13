@@ -8,6 +8,7 @@ const PulsoStore = {
   KEYS: {
     productos: 'pulso_productos_v1',
     cedears: 'pulso_cedears_v1',
+    cedearsCantidades: 'pulso_cedears_cant_v1',
     gastos: 'pulso_gastos_v1',
     ingresos: 'pulso_ingresos_v1',
     valorHora: 'pulso_valor_hora_v1',
@@ -83,6 +84,20 @@ const PulsoStore = {
 
   setCedears(ids) {
     this.set(this.KEYS.cedears, ids);
+  },
+
+  // Cantidades por ticker: { AAPL: 10, TSLA: 5, ... }
+  getCedearsCantidades() {
+    return this.get(this.KEYS.cedearsCantidades, {});
+  },
+
+  setCedearCantidad(id, cantidad) {
+    const map = this.getCedearsCantidades();
+    const n = Math.max(0, parseInt(cantidad) || 0);
+    if (n === 0) delete map[id];
+    else map[id] = n;
+    this.set(this.KEYS.cedearsCantidades, map);
+    return n;
   },
 
   toggleCedear(id) {

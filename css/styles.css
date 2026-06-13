@@ -889,6 +889,39 @@ input {
   color: var(--accent-red-text);
 }
 
+/* Tabla cartera CEDEARs con cantidades */
+.cartera-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 64px 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: #F4ECE0;
+  border-bottom: 0.5px solid rgba(255,255,255,0.07);
+}
+.cartera-row:last-child { border-bottom: none; }
+.cartera-ticker { font-weight: 700; color: #D4A848; font-size: 12px; }
+.cartera-precio { color: #B8AE9D; }
+.cartera-subtotal { text-align: right; font-weight: 600; }
+.cant-input {
+  width: 56px;
+  background: rgba(255,255,255,0.08);
+  border: 0.5px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: #F4ECE0;
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 4px;
+  -moz-appearance: textfield;
+}
+.cant-input::-webkit-inner-spin-button,
+.cant-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.cant-input:focus {
+  outline: none;
+  border-color: #D4A848;
+}
+
 /* Grid de precios mini (5 supers) */
 .price-grid-mini {
   display: grid;

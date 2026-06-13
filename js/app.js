@@ -917,13 +917,16 @@ const Pulso = {
 
   renderCarteraCedears() {
     const seleccionados = PulsoStore.getCedears();
+    const cantidades = PulsoStore.getCedearsCantidades();
     const ceds = PulsoData.cedears
       .filter(c => seleccionados.includes(c.id))
-      .map(c => this.enrichCedear(c));
+      .map(c => ({ ...this.enrichCedear(c), cantidad: cantidades[c.id] ?? 0 }));
 
     const conPrecio = ceds.filter(c => c.priceARS != null);
-    const totalARS = conPrecio.reduce((s, c) => s + c.priceARS, 0);
-    const totalUSD = conPrecio.reduce((s, c) => s + (c.priceUSD ?? 0), 0);
+    // Si el usuario cargó cantidades, usar esas; si no, contar 1 por cada uno
+    const tienenCantidad = ceds.some(c => c.cantidad > 0);
+    const totalARS = conPrecio.reduce((s, c) => s + c.priceARS * (tienenCantidad ? c.cantidad : 1), 0);
+    const totalUSD = conPrecio.reduce((s, c) => s + (c.priceUSD ?? 0) * (tienenCantidad ? c.cantidad : 1), 0);
     const conChg = ceds.filter(c => c.chg != null);
     const promChg = conChg.length ? conChg.reduce((s, c) => s + c.chg, 0) / conChg.length : 0;
 
@@ -937,17 +940,50 @@ const Pulso = {
       hoyEl.textContent = '—';
       hoyEl.className = '';
     } else {
-      totalEl.textContent = '$' + PulsoUI.fmt(totalARS);
-      usdEl.textContent = '≈ US$ ' + totalUSD.toFixed(2) + ' al MEP';
+      totalEl.textContent = '$' + PulsoUI.fmt(Math.round(totalARS));
+      usdEl.textContent = '≈ US$ ' + totalUSD.toFixed(2) + ' al MEP' + (tienenCantidad ? '' : ' · (ingresá tus cantidades)');
       hoyEl.textContent = PulsoUI.fmtPct(promChg);
       hoyEl.className = promChg >= 0 ? 'green' : 'red';
     }
 
+    // Tabla detallada con inputs de cantidad
+    const tablaEl = document.getElementById('carteraDetalle');
+    if (tablaEl) {
+      tablaEl.innerHTML = ceds.map(c => {
+        const cant = c.cantidad;
+        const subtotalARS = c.priceARS != null ? c.priceARS * (cant || 1) : null;
+        return `
+          <div class="cartera-row">
+            <div class="cartera-ticker">${c.id}</div>
+            <div class="cartera-precio">${c.priceARS != null ? '$' + PulsoUI.fmt(Math.round(c.priceARS)) : '—'}</div>
+            <div class="cartera-cant">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value="${cant}"
+                placeholder="0"
+                class="cant-input"
+                onchange="Pulso.setCedearCantidad('${c.id}', this.value)"
+                oninput="Pulso.setCedearCantidad('${c.id}', this.value)"
+              />
+            </div>
+            <div class="cartera-subtotal">${subtotalARS != null && cant > 0 ? '$' + PulsoUI.fmt(Math.round(subtotalARS)) : '—'}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     document.getElementById('cedearsCount').textContent = ceds.length;
-    document.getElementById('cedearsTotal').textContent = conPrecio.length > 0 ? '$' + PulsoUI.fmt(totalARS) : '—';
+    document.getElementById('cedearsTotal').textContent = conPrecio.length > 0 ? '$' + PulsoUI.fmt(Math.round(totalARS)) : '—';
     document.getElementById('cedearsTrend').textContent = conPrecio.length > 0
       ? `${promChg >= 0 ? '▲' : '▼'} ${Math.abs(promChg).toFixed(1)}% hoy`
       : 'Esperando datos en vivo...';
+  },
+
+  setCedearCantidad(id, val) {
+    PulsoStore.setCedearCantidad(id, val);
+    this.renderCarteraCedears();
   },
 
   renderCounters() {

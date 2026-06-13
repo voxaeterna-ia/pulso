@@ -184,9 +184,42 @@ const PulsoAPI = {
     return { dolares, riesgo, inflacion, inflacionIA, uva, cryptos, cedears, usStocks, indices, riesgoHist };
   },
 
-  // ============= ÍNDICES BURSÁTILES (Yahoo Finance) =============
-  // Merval (^MERV), Nasdaq (^NDX), S&P 500 (^GSPC)
-  // API pública gratuita sin auth, con CORS.
+  // ============= ÍNDICES BURSÁTILES =============
+  // Merval: argentinadatos.com (CORS abierto, datos BCBA).
+  // Nasdaq / S&P 500: Yahoo Finance.
+  async getMerval() {
+    try {
+      const r = await fetch('https://api.argentinadatos.com/v1/finanzas/indices/merval/ultimo', { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error('API error ' + r.status);
+      const data = await r.json();
+      // Respuesta esperada: { fecha, valor }
+      if (data?.valor == null) throw new Error('Sin valor');
+      return {
+        ok: true, source: 'live',
+        data: { symbol: '^MERV', price: data.valor, changePercent: null, currency: 'ARS', fecha: data.fecha }
+      };
+    } catch (e) {
+      // Fallback: Yahoo Finance
+      try {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EMERV?interval=1d&range=2d';
+        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) throw new Error('Yahoo error ' + r.status);
+        const d = await r.json();
+        const meta = d?.chart?.result?.[0]?.meta;
+        if (!meta?.regularMarketPrice) throw new Error('Sin datos');
+        const price = meta.regularMarketPrice;
+        const prev = meta.chartPreviousClose ?? meta.previousClose;
+        return {
+          ok: true, source: 'yahoo',
+          data: { symbol: '^MERV', price, changePercent: prev ? ((price - prev) / prev) * 100 : null, currency: 'ARS' }
+        };
+      } catch (e2) {
+        console.warn('[Pulso] Merval no disponible:', e2.message);
+        return { ok: false, source: 'fallback', data: { symbol: '^MERV', price: null, changePercent: null } };
+      }
+    }
+  },
+
   async getIndice(symbol) {
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
@@ -221,7 +254,7 @@ const PulsoAPI = {
 
   async getIndices() {
     const [merval, nasdaq, sp500] = await Promise.all([
-      this.getIndice('%5EMERV'),
+      this.getMerval(),
       this.getIndice('%5ENDX'),
       this.getIndice('%5EGSPC')
     ]);
