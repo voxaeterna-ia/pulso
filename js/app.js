@@ -412,8 +412,8 @@ const Pulso = {
   async buscar() {
     const input = document.getElementById('searchProducts');
     const query = input?.value?.trim();
-    if (!query || query.length < 2) {
-      PulsoUI.toast('Escribí al menos 2 letras');
+    if (!query || query.trim().split(/\s+/).filter(Boolean).length < 2) {
+      PulsoUI.toast('Escribí al menos 2 palabras · Ej: "azúcar común" o "leche descremada"');
       return;
     }
 
