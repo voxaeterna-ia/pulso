@@ -299,7 +299,6 @@ const Pulso = {
       }
     }
 
-    // Merval desde Yahoo Finance
     const mervalVal = document.getElementById('mervalVal');
     const mervalChg = document.getElementById('mervalChg');
     if (this.state.merval?.price) {
@@ -309,6 +308,9 @@ const Pulso = {
         mervalChg.textContent = PulsoUI.fmtPct(chg);
         mervalChg.className = 'pill ' + (chg >= 0 ? 'pill-up' : 'pill-down');
       }
+    } else {
+      if (mervalVal) mervalVal.textContent = 'no disp.';
+      if (mervalChg) mervalChg.textContent = '';
     }
   },
 
