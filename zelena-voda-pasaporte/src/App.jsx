@@ -910,22 +910,23 @@ export default function App() {
                 <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",lineHeight:1.3}}>Aparece en la sección especial del pasaporte</div>
               </div>
             </div>
-            {form.destacado && (
-              <div className="fade" style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",opacity:form.destacado?1:0.35,pointerEvents:form.destacado?"auto":"none"}}>
+              <div style={{background:"#faf4e8",borderRadius:10,border:"1px solid #e8d8a0",padding:"0.75rem 0.9rem",display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                <div style={{fontSize:"0.6rem",color:"#4a3728",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.12em"}}>✨ CONFIGURACIÓN DEL VOUCHER</div>
                 <div>
-                  <div style={st.aLabel}>Cantidad máxima de vouchers</div>
+                  <div style={st.aLabel}>Cantidad máxima de vouchers (0 = sin límite)</div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <input type="number" min={0} value={form.voucherLimit} onChange={e => setForm(f => ({...f,voucherLimit:Math.max(0,parseInt(e.target.value)||0)}))} style={{...st.aInput,width:90,textAlign:"center",fontSize:"1.1rem",fontFamily:"sans-serif",fontWeight:700}}/>
-                    <span style={{fontSize:"0.7rem",color:form.voucherLimit===0?"#aaa":"#1a5c4a",fontFamily:"sans-serif",fontWeight:700}}>{form.voucherLimit===0 ? "Sin límite" : `Máximo ${form.voucherLimit} uso${form.voucherLimit!==1?"s":""}`}</span>
+                    <span style={{fontSize:"0.72rem",color:form.voucherLimit===0?"#aaa":"#1a5c4a",fontFamily:"sans-serif",fontWeight:700}}>{form.voucherLimit===0 ? "Sin límite" : `Máximo ${form.voucherLimit} uso${form.voucherLimit!==1?"s":""}`}</span>
                   </div>
                 </div>
                 <div>
-                  <div style={st.aLabel}>Texto del Voucher (solo Admin Hotel)</div>
+                  <div style={st.aLabel}>Texto del Voucher</div>
                   <textarea value={form.voucherTexto} onChange={set("voucherTexto")} rows={3} placeholder="Ej: 20% de descuento especial para huéspedes de Zelena Voda." style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/>
-                  <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:3,lineHeight:1.4}}>Este texto es independiente del beneficio que edita el comerciante.</div>
+                  <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:3}}>Texto independiente del beneficio que edita el comerciante.</div>
                 </div>
               </div>
-            )}
+            </div>
             <div style={{display:"flex",gap:"0.6rem"}}>
               <button onClick={save} style={{...st.btnGold,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Guardar</button>
               <button onClick={() => setEditing(false)} style={{...st.btnOutline,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Cancelar</button>
