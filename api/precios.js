@@ -12,12 +12,17 @@ const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'sepa.db');
 
-const CADENAS = {
+// Nombres display para cadenas conocidas (se completa con cualquier cadena que esté en la DB)
+const CADENAS_DISPLAY = {
   dia:       'Día',
   carrefour: 'Carrefour',
   disco:     'Disco',
   jumbo:     'Jumbo',
-  vea:       'Vea'
+  vea:       'Vea',
+  coto:      'Coto',
+  walmart:   'Walmart',
+  toledo:    'Toledo',
+  makro:     'Makro',
 };
 
 function getDb() {
@@ -67,9 +72,15 @@ router.get('/', (req, res) => {
 
     db.close();
 
-    // Agrupar: primero por ean+nombre (producto único), después por cadena
-    // La UI espera resultados agrupados por supermercado
-    const resultados = Object.entries(CADENAS).map(([key, nombre]) => {
+    // Agrupar por cadena — usa las cadenas que realmente tienen resultados
+    const cadenasEnRows = [...new Set(rows.map(r => r.cadena))];
+
+    // Si no hay resultados, devolvemos igual las cadenas conocidas vacías
+    const cadenasAMostrar = cadenasEnRows.length > 0
+      ? cadenasEnRows
+      : Object.keys(CADENAS_DISPLAY);
+
+    const resultados = cadenasAMostrar.map(key => {
       const prods = rows
         .filter(r => r.cadena === key)
         .slice(0, 30)
@@ -85,7 +96,7 @@ router.get('/', (req, res) => {
 
       return {
         super: key,
-        supermercado: nombre,
+        supermercado: CADENAS_DISPLAY[key] || key.charAt(0).toUpperCase() + key.slice(1),
         ok: true,
         productos: prods
       };
