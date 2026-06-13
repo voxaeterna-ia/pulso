@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulso · Panel Admin</title>
+  <style>
+    :root {
+      --bg: #0F0E0C;
+      --bg2: #1A1816;
+      --bg3: #242220;
+      --text: #F4ECE0;
+      --soft: #B8AE9D;
+      --yellow: #D4A848;
+      --green: #1D6E4D;
+      --green-soft: #DBE9D2;
+      --red: #C8332C;
+      --red-soft: #FCEBEB;
+      --border: rgba(255,255,255,0.1);
+      --radius: 10px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+
+    /* Login */
+    #loginScreen {
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .login-box {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+      padding: 32px; width: 320px; text-align: center;
+    }
+    .login-box h1 { font-size: 22px; margin-bottom: 6px; }
+    .login-box p { color: var(--soft); font-size: 12px; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; padding: 12px; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: 15px; margin-bottom: 12px; text-align: center;
+    }
+    .login-box input:focus { outline: none; border-color: var(--yellow); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-yellow { background: var(--yellow); color: #2A1F06; }
+    .btn-dark { background: var(--bg3); color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+    .btn-red { background: var(--red); color: white; }
+    .btn-green { background: var(--green); color: white; }
+
+    /* App */
+    #appScreen { display: none; max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 20px; }
+    .page-header span { color: var(--soft); font-size: 12px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--yellow); font-weight: 600; margin-bottom: 14px; }
+
+    .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row span:first-child { color: var(--soft); }
+    .stat-row strong { color: var(--text); }
+
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px;
+      text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 12px;
+    }
+    .upload-area:hover, .upload-area.drag { border-color: var(--yellow); }
+    .upload-area .icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-area p { color: var(--soft); font-size: 12px; margin-top: 6px; }
+    #fileInput { display: none; }
+
+    .progress-wrap { background: var(--bg3); border-radius: 6px; overflow: hidden; height: 10px; margin: 12px 0; }
+    .progress-bar { height: 100%; background: var(--yellow); transition: width 0.4s; width: 0%; }
+
+    .log-box {
+      background: #0A0908; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px; font-family: monospace; font-size: 11px; color: #8A8; max-height: 200px;
+      overflow-y: auto; white-space: pre-wrap; display: none; margin-top: 12px;
+    }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot-green { background: #22c55e; }
+    .dot-yellow { background: var(--yellow); animation: blink 1s infinite; }
+    .dot-red { background: var(--red); }
+    .dot-gray { background: #555; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .error-box { background: rgba(200,51,44,0.15); border: 1px solid rgba(200,51,44,0.3); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #ff9e9a; margin-top: 10px; display: none; }
+    .success-box { background: rgba(29,110,77,0.2); border: 1px solid rgba(29,110,77,0.3); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #6ee7b7; margin-top: 10px; display: none; }
+
+    .step-label { font-size: 12px; color: var(--soft); margin-bottom: 4px; }
+    .pct-label { font-size: 12px; color: var(--yellow); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>Pulso · Admin</h1>
+    <p>Ingresá la clave para acceder al panel</p>
+    <input type="password" id="passwordInput" placeholder="Clave de acceso" autocomplete="current-password" />
+    <button class="btn btn-yellow" onclick="login()">Entrar</button>
+    <div class="error-box" id="loginError">Clave incorrecta</div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="appScreen">
+  <div class="page-header">
+    <h1>📊 Panel Admin · SEPA</h1>
+    <span id="lastRefresh">—</span>
+  </div>
+
+  <!-- ESTADO BD -->
+  <div class="card">
+    <h2>Estado de la base de datos</h2>
+    <div id="dbStats">
+      <div class="stat-row"><span>Estado</span><strong id="dbEstado">—</strong></div>
+      <div class="stat-row"><span>Productos</span><strong id="dbProductos">—</strong></div>
+      <div class="stat-row"><span>Tamaño</span><strong id="dbTamanio">—</strong></div>
+      <div class="stat-row"><span>Última actualización</span><strong id="dbFecha">—</strong></div>
+      <div class="stat-row"><span>Archivo fuente</span><strong id="dbFuente">—</strong></div>
+    </div>
+    <button class="btn btn-dark" style="margin-top:14px;" onclick="loadStatus()">↻ Refrescar estado</button>
+  </div>
+
+  <!-- SUBIR ZIP -->
+  <div class="card">
+    <h2>Subir ZIP del SEPA</h2>
+    <p style="color:var(--soft); font-size:12px; margin-bottom:14px;">
+      Descargá el ZIP diario de <strong style="color:var(--text)">datos.produccion.gob.ar/dataset/sepa-precios</strong> y arrastralo acá.
+    </p>
+    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📦</div>
+      <div id="dropLabel">Arrastrá el ZIP acá o <strong>hacé click</strong></div>
+      <p>~330 MB · se sube al servidor y queda pendiente de procesar</p>
+    </div>
+    <input type="file" id="fileInput" accept=".zip" onchange="handleFile(this.files[0])" />
+
+    <div id="uploadProgress" style="display:none;">
+      <div class="step-label">Subiendo archivo...</div>
+      <div class="progress-wrap"><div class="progress-bar" id="uploadBar"></div></div>
+    </div>
+
+    <div class="success-box" id="uploadSuccess"></div>
+    <div class="error-box" id="uploadError"></div>
+  </div>
+
+  <!-- PROCESAR -->
+  <div class="card">
+    <h2>Procesar e importar</h2>
+    <p style="color:var(--soft); font-size:12px; margin-bottom:14px;">
+      Una vez subido el ZIP, iniciá el procesamiento. Tarda 15–40 min. Podés cerrar esta pestaña, el proceso sigue corriendo en el servidor.
+    </p>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px;">
+      <span class="status-dot" id="ingestaDot"></span>
+      <span id="ingestablado" style="font-size:13px;">—</span>
+      <span class="pct-label" id="ingestaPct"></span>
+    </div>
+
+    <div class="step-label" id="ingestaStep"></div>
+    <div class="progress-wrap"><div class="progress-bar" id="ingestaBar"></div></div>
+
+    <div class="log-box" id="logBox"></div>
+
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn btn-yellow" id="btnProcesar" onclick="procesarZip()">▶ Iniciar procesamiento</button>
+      <button class="btn btn-dark" onclick="toggleLog()">Ver log</button>
+    </div>
+
+    <div class="error-box" id="ingestaError"></div>
+    <div class="success-box" id="ingestaSuccess"></div>
+  </div>
+</div>
+
+<script>
+  let token = '';
+  let sseSource = null;
+
+  // ── AUTH ──
+  document.getElementById('passwordInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  async function login() {
+    const pwd = document.getElementById('passwordInput').value;
+    if (!pwd) return;
+    const r = await fetch('/api/admin/status', { headers: { 'X-Admin-Token': pwd } });
+    if (r.status === 401) {
+      document.getElementById('loginError').style.display = 'block';
+      return;
+    }
+    token = pwd;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    loadStatus();
+    startSSE();
+  }
+
+  // ── STATUS ──
+  async function loadStatus() {
+    const r = await fetch('/api/admin/status', { headers: { 'X-Admin-Token': token } });
+    const data = await r.json();
+    document.getElementById('lastRefresh').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-AR');
+
+    if (data.db?.exists) {
+      document.getElementById('dbEstado').innerHTML = '<span class="status-dot dot-green"></span>Activa';
+      document.getElementById('dbProductos').textContent = data.db.rows?.toLocaleString('es-AR') + ' filas' || '—';
+      document.getElementById('dbTamanio').textContent = data.db.sizeMB + ' MB';
+      document.getElementById('dbFecha').textContent = data.db.lastUpdate ? new Date(data.db.lastUpdate).toLocaleString('es-AR') : '—';
+      document.getElementById('dbFuente').textContent = data.db.sourceFile || '—';
+    } else {
+      document.getElementById('dbEstado').innerHTML = '<span class="status-dot dot-gray"></span>No existe todavía';
+      document.getElementById('dbProductos').textContent = '—';
+      document.getElementById('dbTamanio').textContent = '—';
+      document.getElementById('dbFecha').textContent = '—';
+      document.getElementById('dbFuente').textContent = '—';
+    }
+  }
+
+  // ── UPLOAD ──
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  function handleFile(file) {
+    if (!file || !file.name.endsWith('.zip')) {
+      showMsg('uploadError', 'El archivo debe ser un ZIP');
+      return;
+    }
+    document.getElementById('dropLabel').textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+    uploadFile(file);
+  }
+
+  async function uploadFile(file) {
+    const form = new FormData();
+    form.append('zip', file);
+
+    document.getElementById('uploadProgress').style.display = 'block';
+    hideMsg('uploadError'); hideMsg('uploadSuccess');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/admin/upload');
+    xhr.setRequestHeader('X-Admin-Token', token);
+
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        document.getElementById('uploadBar').style.width = pct + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      document.getElementById('uploadProgress').style.display = 'none';
+      const data = JSON.parse(xhr.responseText);
+      if (data.ok) {
+        showMsg('uploadSuccess', `✓ ZIP recibido (${data.sizeMB} MB). Ahora podés procesarlo.`);
+      } else {
+        showMsg('uploadError', data.error || 'Error al subir');
+      }
+    };
+
+    xhr.onerror = () => {
+      document.getElementById('uploadProgress').style.display = 'none';
+      showMsg('uploadError', 'Error de red al subir el archivo');
+    };
+
+    xhr.send(form);
+  }
+
+  // ── PROCESS ──
+  async function procesarZip() {
+    hideMsg('ingestaError'); hideMsg('ingestaSuccess');
+    const r = await fetch('/api/admin/process', {
+      method: 'POST',
+      headers: { 'X-Admin-Token': token, 'Content-Type': 'application/json' }
+    });
+    const data = await r.json();
+    if (!data.ok) {
+      showMsg('ingestaError', data.error);
+    }
+  }
+
+  // ── SSE PROGRESS ──
+  function startSSE() {
+    if (sseSource) sseSource.close();
+    sseSource = new EventSource(`/api/admin/progress?token=${encodeURIComponent(token)}`);
+    sseSource.onmessage = e => {
+      const d = JSON.parse(e.data);
+      updateIngesta(d);
+    };
+    sseSource.onerror = () => {};
+  }
+
+  function updateIngesta(d) {
+    const dot  = document.getElementById('ingestaDot');
+    const label = document.getElementById('ingestablado');
+    const pct   = document.getElementById('ingestaPct');
+    const bar   = document.getElementById('ingestaBar');
+    const step  = document.getElementById('ingestaStep');
+    const btn   = document.getElementById('btnProcesar');
+
+    bar.style.width = d.progress + '%';
+    pct.textContent = d.progress + '%';
+    step.textContent = d.step || '';
+
+    if (d.running) {
+      dot.className = 'status-dot dot-yellow';
+      label.textContent = 'Procesando...';
+      btn.disabled = true;
+    } else if (d.progress === 100) {
+      dot.className = 'status-dot dot-green';
+      label.textContent = 'Completado';
+      btn.disabled = false;
+      showMsg('ingestaSuccess', '✓ Base de datos actualizada correctamente');
+      loadStatus();
+    } else if (d.step === 'Error') {
+      dot.className = 'status-dot dot-red';
+      label.textContent = 'Error';
+      btn.disabled = false;
+    } else {
+      dot.className = 'status-dot dot-gray';
+      label.textContent = 'Inactivo';
+      btn.disabled = false;
+    }
+
+    if (d.log?.length) {
+      document.getElementById('logBox').textContent = d.log.join('\n');
+      document.getElementById('logBox').scrollTop = 9999;
+    }
+  }
+
+  function toggleLog() {
+    const lb = document.getElementById('logBox');
+    lb.style.display = lb.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function showMsg(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideMsg(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+</script>
+</body>
+</html>

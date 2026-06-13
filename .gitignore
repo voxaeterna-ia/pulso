@@ -1,0 +1,6 @@
+node_modules/
+sepa.db
+sepa.db.bak
+sepa.db.tmp
+uploads/
+.env

@@ -425,8 +425,6 @@ const Pulso = {
     btn.textContent = 'Buscar';
 
     if (!data.ok) {
-      // Mostrar aviso de proxy
-      document.getElementById('proxyWarning').style.display = 'block';
       title.textContent = 'búsqueda no disponible';
       resultsDiv.innerHTML = `<p class="meta-line" style="padding: 14px; text-align: center; color: var(--accent-red);">${data.error || 'Error al buscar'}</p>`;
       return;
