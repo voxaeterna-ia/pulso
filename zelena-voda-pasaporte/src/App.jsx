@@ -30,7 +30,7 @@ const ADMIN_PASS = "zelena2026";
 const uid = () => Math.random().toString(36).slice(2,9);
 const fmtDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
 const fmtNow = () => { const n=new Date(); return n.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); };
-const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"" });
+const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"", destacado: c.destacado||false });
 
 const st = {
   btnGold:   { background:"#c9a84c", color:"#0d2340", border:"none", padding:"0.75rem 2rem", borderRadius:30, fontSize:"0.9rem", fontWeight:700, cursor:"pointer", letterSpacing:"0.05em", fontFamily:"'Playfair Display',serif" },
@@ -238,6 +238,23 @@ export default function App() {
             <div style={{fontSize:"0.72rem",color:"#4a3728",fontFamily:"sans-serif",lineHeight:1.6,fontStyle:"italic"}}>{config.bienvenida}</div>
           </div>
         )}
+        {(() => {
+          const dest = comercios.filter(c => c.destacado);
+          if (!dest.length) return null;
+          return (
+            <div onClick={() => setScreen("vouchers")} style={{margin:"1rem 1.2rem 0",background:"linear-gradient(135deg,#faf4e8 0%,#f5edcf 100%)",borderRadius:16,border:"1.5px solid #c9a84c",padding:"1.1rem 1.3rem",boxShadow:"0 2px 12px rgba(201,168,76,0.18)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"0.8rem"}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                  <span style={{fontSize:"1rem"}}>✨</span>
+                  <span style={{fontSize:"0.68rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.16em",color:"#0d2340",textTransform:"uppercase"}}>Vouchers Destacados</span>
+                </div>
+                <div style={{fontSize:"0.78rem",color:"#4a3728",fontFamily:"sans-serif",marginBottom:3}}>{dest.length} beneficio{dest.length!==1?"s":""} especial{dest.length!==1?"es":""} disponible{dest.length!==1?"s":""}</div>
+                <div style={{fontSize:"0.65rem",color:"rgba(10,35,64,0.5)",fontFamily:"sans-serif",fontStyle:"italic"}}>Beneficios especiales durante tu estadía</div>
+              </div>
+              <div style={{background:"#0d2340",color:"#c9a84c",borderRadius:20,padding:"0.45rem 0.9rem",fontSize:"0.68rem",fontFamily:"sans-serif",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>Ver vouchers →</div>
+            </div>
+          );
+        })()}
         <div style={st.secTitle}>— BENEFICIOS EXCLUSIVOS —</div>
         <div style={{padding:"0 1.2rem",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
           {comercios.map(comercio => {
@@ -460,6 +477,14 @@ export default function App() {
     const color    = c.color||"#1a5c4a";
     const icon     = c.icon||"🏪";
     const misUsos  = usos.filter(u => u.comercioId===c.id).sort((a,b) => (b.fechaHora||"").localeCompare(a.fechaHora||""));
+    const [editBeneficio, setEditBeneficio] = useState(false);
+    const [beneficioEdit, setBeneficioEdit] = useState(comercios.find(x=>x.id===c.id)?.beneficio||c.beneficio);
+    const guardarBeneficio = async () => {
+      const cf = comercios.find(x => x.id===c.id);
+      await fsComercio({...cf, beneficio:beneficioEdit});
+      setComercioActivo({...c, beneficio:beneficioEdit});
+      setEditBeneficio(false); showToast("Beneficio actualizado ✓");
+    };
     const [editPin,    setEditPin]    = useState(false);
     const [nuevoPin,   setNuevoPin]   = useState("");
     const [pinActual,  setPinActual]  = useState("");
@@ -526,6 +551,23 @@ export default function App() {
               </div>
             </div>
           )}
+          {/* Edit beneficio */}
+          <div style={{background:"rgba(255,255,255,0.05)",borderRadius:12,border:`1px solid ${editBeneficio?"rgba(201,168,76,0.6)":"rgba(201,168,76,0.2)"}`,padding:"0.9rem 1rem"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:editBeneficio?8:0}}>
+              <div style={{fontSize:"0.55rem",color:"#e8c97a",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.15em"}}>BENEFICIO / PROMOCIÓN</div>
+              {!editBeneficio && <button onClick={() => { setBeneficioEdit(comercios.find(x=>x.id===c.id)?.beneficio||c.beneficio); setEditBeneficio(true); }} style={{background:"none",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:"0.55rem",color:"#e8c97a",fontFamily:"sans-serif"}}>✏️ Editar</button>}
+            </div>
+            {!editBeneficio
+              ? <div style={{color:"white",fontSize:"0.82rem",fontFamily:"sans-serif",lineHeight:1.5,marginTop:4}}>{comercios.find(x=>x.id===c.id)?.beneficio||c.beneficio}</div>
+              : <div className="fade" style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                  <textarea value={beneficioEdit} onChange={e => setBeneficioEdit(e.target.value)} rows={4} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(201,168,76,0.4)",borderRadius:8,padding:"0.6rem 0.8rem",color:"white",fontSize:"0.82rem",fontFamily:"sans-serif",lineHeight:1.5,resize:"vertical",width:"100%",outline:"none"}}/>
+                  <div style={{display:"flex",gap:"0.5rem"}}>
+                    <button onClick={guardarBeneficio} style={{...st.btnGold,flex:1,padding:"0.55rem",fontSize:"0.75rem"}}>Guardar</button>
+                    <button onClick={() => setEditBeneficio(false)} style={{...st.btnOutline,flex:1,padding:"0.55rem",fontSize:"0.75rem"}}>Cancelar</button>
+                  </div>
+                </div>
+            }
+          </div>
           {/* Change discount PIN */}
           <div style={{background:"rgba(255,255,255,0.05)",borderRadius:12,border:`1px solid ${editPin?"rgba(201,168,76,0.6)":"rgba(201,168,76,0.2)"}`,padding:"0.9rem 1rem"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:editPin?8:0}}>
@@ -747,7 +789,8 @@ export default function App() {
       discountPin:c.discountPin||"0000", adminPass:c.adminPass||"pass2026",
       whatsapp:c.whatsapp||"", instagram:c.instagram||"", facebook:c.facebook||"",
       maps:c.maps||"", foto:c.foto||"",
-      color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0]
+      color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0],
+      destacado:c.destacado||false
     });
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
     const save = async () => { await fsComercio({...c,...form}); setEditing(false); showToast("Comercio actualizado ✓"); };
@@ -832,12 +875,72 @@ export default function App() {
               <div><div style={st.aLabel}>PIN Descuento (4 dígitos)</div><input value={form.discountPin} onChange={e => { if(/^\d{0,4}$/.test(e.target.value)) set("discountPin")(e); }} maxLength={4} inputMode="numeric" style={{...st.aInput,letterSpacing:"0.2em",textAlign:"center",fontSize:"1rem"}}/></div>
               <div><div style={st.aLabel}>Contraseña Admin</div><input value={form.adminPass} onChange={set("adminPass")} style={st.aInput} placeholder="Contraseña"/></div>
             </div>
+            <div onClick={() => setForm(f => ({...f,destacado:!f.destacado}))} style={{display:"flex",alignItems:"center",gap:10,padding:"0.6rem 0.8rem",borderRadius:10,background:form.destacado?"#faf4e8":"#f9f6f0",border:`1.5px solid ${form.destacado?"#c9a84c":"#e0d8c8"}`,cursor:"pointer",userSelect:"none"}}>
+              <div style={{width:22,height:22,borderRadius:6,background:form.destacado?"#c9a84c":"white",border:`2px solid ${form.destacado?"#c9a84c":"#c0b898"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+                {form.destacado && <span style={{color:"#0d2340",fontSize:"0.8rem",fontWeight:700,lineHeight:1}}>✓</span>}
+              </div>
+              <div>
+                <div style={{fontSize:"0.7rem",color:"#0d2340",fontFamily:"sans-serif",fontWeight:700}}>✨ Voucher Destacado</div>
+                <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",lineHeight:1.3}}>Aparece en la sección especial del pasaporte</div>
+              </div>
+            </div>
             <div style={{display:"flex",gap:"0.6rem"}}>
               <button onClick={save} style={{...st.btnGold,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Guardar</button>
               <button onClick={() => setEditing(false)} style={{...st.btnOutline,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Cancelar</button>
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ── VOUCHERS SCREEN ────────────────────────────────────────────────────────
+  function VouchersScreen() {
+    const h = huesped;
+    const dest = comercios.filter(c => c.destacado);
+    return (
+      <div className="fade" style={{background:"#f5f0e8",minHeight:"100vh",paddingBottom:"2rem",overflowY:"auto"}}>
+        <div style={{background:"#0d2340",padding:"1rem 1.4rem",display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={() => setScreen("passport")} style={{background:"none",border:"none",color:"#c9a84c",cursor:"pointer",fontSize:"1.1rem"}}>⟵</button>
+          <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>✨ VOUCHERS DESTACADOS</span>
+          <div style={{width:24}}/>
+        </div>
+        <div style={{padding:"1rem 1.2rem 0",background:"linear-gradient(135deg,#faf4e8,#f0e8cc)",margin:"1.2rem 1.2rem 0",borderRadius:14,border:"1px solid #c9a84c"}}>
+          <div style={{fontSize:"0.62rem",color:"#4a3728",fontFamily:"sans-serif",letterSpacing:"0.15em",fontWeight:700,marginBottom:4}}>BENEFICIOS ESPECIALES</div>
+          <div style={{fontSize:"0.78rem",color:"#0d2340",fontFamily:"sans-serif",fontStyle:"italic",paddingBottom:"1rem"}}>{dest.length} voucher{dest.length!==1?"s":""} disponible{dest.length!==1?"s":""} durante tu estadía</div>
+        </div>
+        <div style={{padding:"1rem 1.2rem 0",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+          {dest.map(comercio => {
+            const cnt = usos.filter(u => u.comercioId===comercio.id && u.huespedId===h.id).length;
+            return (
+              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setScreen("detail"); }}
+                style={{background:"white",borderRadius:14,border:"2px solid #c9a84c",overflow:"hidden",boxShadow:"0 2px 10px rgba(201,168,76,0.15)",cursor:"pointer"}}>
+                <div style={{background:"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.35rem 0.9rem",display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:"0.7rem"}}>✨</span>
+                  <span style={{fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",color:"#0d2340",textTransform:"uppercase"}}>Voucher Destacado</span>
+                </div>
+                <div style={{display:"flex",alignItems:"stretch"}}>
+                  <div style={{width:60,background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <span style={{fontSize:"1.6rem"}}>{comercio.icon||"🏪"}</span>
+                  </div>
+                  <div style={{flex:1,padding:"0.75rem 0.9rem",minWidth:0}}>
+                    <div style={{fontSize:"0.52rem",color:"#888",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase"}}>{comercio.cat}</div>
+                    <div style={{fontSize:"0.92rem",color:"#0d2340",fontStyle:"italic",lineHeight:1.2,margin:"2px 0"}}>{comercio.name}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555",fontFamily:"sans-serif",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{comercio.beneficio}</div>
+                  </div>
+                  <div style={{width:46,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderLeft:"1px dashed #ede5d4",flexShrink:0,gap:3}}>
+                    {cnt > 0
+                      ? <div style={{width:32,height:32,borderRadius:"50%",background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <span style={{color:"white",fontSize:"0.7rem",fontFamily:"sans-serif",fontWeight:700}}>×{cnt}</span>
+                        </div>
+                      : <span style={{fontSize:"0.55rem",color:"#c9a84c"}}>›</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -856,6 +959,7 @@ export default function App() {
         {screen==="comerciologin" && <ComercioLoginScreen/>}
         {screen==="comerciopanel" && comercioActivo && <ComercioPanelScreen/>}
         {screen==="adminlogin"    && <AdminLoginScreen/>}
+        {screen==="vouchers"      && huesped && <VouchersScreen/>}
         {screen==="admin"         && adminMode && <AdminDashboard/>}
       </div>
     </>
