@@ -40,6 +40,10 @@ const Pulso = {
     };
 
     safeRender('renderChanguito', this.renderChanguito);
+    // Auto-refresh prices for saved products in background (no spinner)
+    if (PulsoStore.getProductos().length > 0) {
+      this.refrescarPreciosSilencioso();
+    }
     safeRender('renderCedearList', this.renderCedearList);
     safeRender('renderRecentList', this.renderRecentList);
     safeRender('renderPlata', this.renderPlata);
@@ -458,7 +462,7 @@ const Pulso = {
       });
     });
 
-    const productos = Object.values(productosPorEan).slice(0, 20);
+    const productos = Object.values(productosPorEan).slice(0, 50);
     this.searchState = { query, results: productos };
 
     title.textContent = `resultados para "${query}" · ${productos.length} productos`;
@@ -605,13 +609,13 @@ const Pulso = {
     const validos = Object.entries(precios).filter(([, v]) => v?.precio != null);
     const minPrecio = validos.length ? Math.min(...validos.map(([, v]) => v.precio)) : null;
 
-    const preciosHTML = ['dia', 'carrefour', 'disco', 'jumbo', 'vea'].map(s => {
-      const info = precios[s];
+    const preciosHTML = Object.entries(precios).map(([s, info]) => {
+      const nombre = PulsoData.supermercadosNombres[s] || info?.supermercado || s;
       if (!info || info.precio == null) {
-        return `<div class="price-cell-mini empty"><span class="ps-name">${PulsoData.supermercadosNombres[s]}</span><span class="ps-val">—</span></div>`;
+        return `<div class="price-cell-mini empty"><span class="ps-name">${nombre}</span><span class="ps-val">—</span></div>`;
       }
       const isMin = info.precio === minPrecio;
-      return `<div class="price-cell-mini ${isMin ? 'cheapest' : ''}"><span class="ps-name">${PulsoData.supermercadosNombres[s]}</span><span class="ps-val">$${PulsoUI.fmt(info.precio)}</span></div>`;
+      return `<div class="price-cell-mini ${isMin ? 'cheapest' : ''}"><span class="ps-name">${nombre}</span><span class="ps-val">$${PulsoUI.fmt(info.precio)}</span></div>`;
     }).join('');
 
     const idEsc = (p.ean || p.id).replace(/'/g, "\\'");
@@ -635,13 +639,17 @@ const Pulso = {
     const div = document.getElementById('comparativaTotales');
     if (!div) return;
 
-    // Sumar por super
-    const totales = { dia: 0, carrefour: 0, disco: 0, jumbo: 0, vea: 0 };
-    const conteos = { dia: 0, carrefour: 0, disco: 0, jumbo: 0, vea: 0 };
+    // Reunir todas las cadenas presentes en los productos guardados
+    const todasCadenas = new Set();
+    productos.forEach(p => Object.keys(p.preciosIniciales || {}).forEach(s => todasCadenas.add(s)));
+
+    const totales = {};
+    const conteos = {};
+    todasCadenas.forEach(s => { totales[s] = 0; conteos[s] = 0; });
 
     productos.forEach(p => {
       const precios = p.preciosIniciales || {};
-      Object.keys(totales).forEach(s => {
+      todasCadenas.forEach(s => {
         if (precios[s]?.precio != null) {
           totales[s] += precios[s].precio;
           conteos[s]++;
@@ -651,11 +659,11 @@ const Pulso = {
 
     const totalesArr = Object.entries(totales).map(([s, total]) => ({
       super: s,
-      nombre: PulsoData.supermercadosNombres[s],
+      nombre: PulsoData.supermercadosNombres[s] || s.charAt(0).toUpperCase() + s.slice(1),
       total,
       productos: conteos[s],
       completo: conteos[s] === productos.length
-    }));
+    })).sort((a, b) => a.total - b.total);
 
     const totalesCompletos = totalesArr.filter(t => t.completo);
     const minTotal = totalesCompletos.length ? Math.min(...totalesCompletos.map(t => t.total)) : null;
@@ -716,15 +724,17 @@ const Pulso = {
 
       const preciosNuevos = {};
       r.resultados?.forEach(item => {
-        if (item.ok && item.precio != null) {
+        const prod = item.productos?.[0];
+        if (item.ok && prod?.precio != null) {
           preciosNuevos[item.super] = {
             supermercado: item.supermercado,
-            precio: item.precio,
-            disponible: item.disponible
+            precio: prod.precio,
+            disponible: prod.disponible
           };
         }
       });
 
+      if (Object.keys(preciosNuevos).length === 0) return p;
       return { ...p, preciosIniciales: preciosNuevos, lastUpdated: Date.now() };
     });
 
@@ -734,6 +744,41 @@ const Pulso = {
     btn.disabled = false;
     btn.textContent = '↻ Actualizar precios';
     PulsoUI.toast('✓ Precios actualizados');
+  },
+
+  // Auto-refresh de precios en background al iniciar la app (sin botón ni toast)
+  async refrescarPreciosSilencioso() {
+    const productos = PulsoStore.getProductos();
+    if (productos.length === 0) return;
+
+    const promesas = productos.map(p =>
+      p.ean ? PulsoAPI.obtenerPreciosPorEAN(p.ean) : PulsoAPI.buscarProductos(p.nombre)
+    );
+    const resultados = await Promise.all(promesas);
+
+    const actualizados = productos.map((p, idx) => {
+      const r = resultados[idx];
+      if (!r || !r.ok || !r.resultados) return p;
+
+      const preciosNuevos = {};
+      r.resultados.forEach(item => {
+        const prod = item.productos?.[0];
+        if (item.ok && prod?.precio != null) {
+          preciosNuevos[item.super] = {
+            supermercado: item.supermercado,
+            precio: prod.precio,
+            disponible: prod.disponible
+          };
+        }
+      });
+
+      if (Object.keys(preciosNuevos).length === 0) return p;
+      return { ...p, preciosIniciales: preciosNuevos, lastUpdated: Date.now() };
+    });
+
+    PulsoStore.setProductos(actualizados);
+    this.renderChanguito();
+    this.renderChanguitoMini();
   },
 
   clearSearch() {
