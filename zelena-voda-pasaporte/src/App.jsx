@@ -30,7 +30,7 @@ const ADMIN_PASS = "zelena2026";
 const uid = () => Math.random().toString(36).slice(2,9);
 const fmtDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
 const fmtNow = () => { const n=new Date(); return n.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); };
-const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"", destacado: c.destacado||false });
+const migrateComercio = c => ({ ...c, discountPin: c.discountPin||c.pin||"0000", adminPass: c.adminPass||(c.id+"pass"), whatsapp: c.whatsapp||"", instagram: c.instagram||"", facebook: c.facebook||"", destacado: c.destacado||false, voucherTexto: c.voucherTexto||"" });
 
 const st = {
   btnGold:   { background:"#c9a84c", color:"#0d2340", border:"none", padding:"0.75rem 2rem", borderRadius:30, fontSize:"0.9rem", fontWeight:700, cursor:"pointer", letterSpacing:"0.05em", fontFamily:"'Playfair Display',serif" },
@@ -792,7 +792,7 @@ export default function App() {
       whatsapp:c.whatsapp||"", instagram:c.instagram||"", facebook:c.facebook||"",
       maps:c.maps||"", foto:c.foto||"",
       color:c.color||COLORS_OPCIONES[0], icon:c.icon||ICONS_OPCIONES[0],
-      destacado:c.destacado||false
+      destacado:c.destacado||false, voucherTexto:c.voucherTexto||""
     });
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
     const save = async () => { await fsComercio({...c,...form}); setEditing(false); showToast("Comercio actualizado ✓"); };
@@ -886,6 +886,13 @@ export default function App() {
                 <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",lineHeight:1.3}}>Aparece en la sección especial del pasaporte</div>
               </div>
             </div>
+            {form.destacado && (
+              <div className="fade">
+                <div style={st.aLabel}>Texto del Voucher (editado solo por Admin Hotel)</div>
+                <textarea value={form.voucherTexto} onChange={set("voucherTexto")} rows={3} placeholder="Ej: 20% de descuento especial para huéspedes de Zelena Voda. Válido toda la temporada." style={{...st.aInput,resize:"vertical",lineHeight:1.5,fontSize:"0.82rem"}}/>
+                <div style={{fontSize:"0.58rem",color:"#888",fontFamily:"sans-serif",marginTop:4,lineHeight:1.4}}>Este texto es independiente del beneficio que edita el comerciante.</div>
+              </div>
+            )}
             <div style={{display:"flex",gap:"0.6rem"}}>
               <button onClick={save} style={{...st.btnGold,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Guardar</button>
               <button onClick={() => setEditing(false)} style={{...st.btnOutline,flex:1,padding:"0.65rem",fontSize:"0.82rem"}}>Cancelar</button>
@@ -928,7 +935,7 @@ export default function App() {
                   <div style={{flex:1,padding:"0.75rem 0.9rem",minWidth:0}}>
                     <div style={{fontSize:"0.52rem",color:"#888",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase"}}>{comercio.cat}</div>
                     <div style={{fontSize:"0.92rem",color:"#0d2340",fontStyle:"italic",lineHeight:1.2,margin:"2px 0"}}>{comercio.name}</div>
-                    <div style={{fontSize:"0.65rem",color:"#555",fontFamily:"sans-serif",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{comercio.beneficio}</div>
+                    <div style={{fontSize:"0.65rem",color:"#555",fontFamily:"sans-serif",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{comercio.voucherTexto||comercio.beneficio}</div>
                   </div>
                   <div style={{width:46,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderLeft:"1px dashed #ede5d4",flexShrink:0,gap:3}}>
                     {cnt > 0
