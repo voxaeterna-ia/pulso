@@ -129,7 +129,7 @@ router.post('/process', auth, (req, res) => {
     lastSuccess: null
   };
 
-  const child = spawn('node', [SCRIPT_PATH, zipPath], {
+  const child = spawn('node', ['--max-old-space-size=400', SCRIPT_PATH, zipPath], {
     env: { ...process.env, DB_PATH }
   });
 

@@ -37,6 +37,14 @@ function normalizarNombreCadena(nombre) {
     walmart:   ['walmart', 'changomas'],
     toledo:    ['toledo'],
     makro:     ['makro'],
+    laanonima: ['anonima'],
+    agricola:  ['agricola'],
+    chango:    ['changomassrl', 'changomas'],
+    libertad:  ['libertad'],
+    atomo:     ['atomo', 'átomo'],
+    diarco:    ['diarco'],
+    ekono:     ['ekono'],
+    cordiez:   ['cordiez'],
   };
   for (const [clave, variantes] of Object.entries(MAP)) {
     for (const v of variantes) {
