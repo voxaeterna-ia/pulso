@@ -189,17 +189,14 @@ const PulsoAPI = {
   // Nasdaq / S&P 500: Yahoo Finance.
   async getMerval() {
     try {
-      const r = await fetch('https://data912.com/live/arg_indices', { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) throw new Error('data912 error ' + r.status);
-      const arr = await r.json();
-      if (!Array.isArray(arr)) throw new Error('Formato inesperado');
-      const merv = arr.find(i => i.symbol === 'MERVAL' || i.symbol === '^MERV' || (i.symbol || '').toUpperCase().includes('MERV'));
-      if (!merv?.c) throw new Error('Sin dato Merval');
-      const price = merv.c;
-      const prev = merv.pc ?? merv.prev_close ?? null;
+      const r = await fetch('/api/byma?type=indices', { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error('Proxy error ' + r.status);
+      const data = await r.json();
+      const merval = data?.indices?.merval;
+      if (!merval?.price) throw new Error('Sin dato Merval');
       return {
-        ok: true, source: 'data912',
-        data: { symbol: '^MERV', price, changePercent: prev ? ((price - prev) / prev) * 100 : (merv.v_pct ?? null), currency: 'ARS' }
+        ok: true, source: 'byma',
+        data: { symbol: '^MERV', price: merval.price, changePercent: merval.changePercent ?? null, currency: 'ARS' }
       };
     } catch (e) {
       console.warn('[Pulso] Merval no disponible:', e.message);
