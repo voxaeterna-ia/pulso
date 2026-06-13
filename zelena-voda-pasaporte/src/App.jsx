@@ -71,6 +71,7 @@ export default function App() {
   const [comercioActivo, setComercioActivo] = useState(null);
   const [toast, setToast]       = useState("");
   const [loading, setLoading]   = useState(true);
+  const [forceDesktop, setForceDesktop] = useState(false);
 
   useEffect(() => { try { localStorage.setItem("zv_currentUser", JSON.stringify(currentUser)); } catch {} }, [currentUser]);
 
@@ -141,7 +142,6 @@ export default function App() {
     );
   }
 
-  const [forceDesktop, setForceDesktop] = useState(false);
   if (!isMobile && !forceDesktop) return (
     <div style={{minHeight:"100vh",background:"#0d2340",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem",gap:"1.5rem"}}>
       <div style={{width:80,height:80,border:"2px solid #c9a84c",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}><LogoSVG size={48}/></div>
