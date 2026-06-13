@@ -50,24 +50,24 @@ router.get('/', async (req, res) => {
       return res.json({ ok: true, source: 'byma', ...cacheIndices.data });
     }
     try {
+      // Ambito provee el Merval con datos del día
+      const ambitoUrl = 'https://mercados.ambito.com/merval/variacion';
       const data = await new Promise((resolve, reject) => {
-        https.get(BYMA_INDICES_URL, { headers: { 'Accept': 'application/json', 'User-Agent': 'Pulso/2.3' } }, r => {
-          if (r.statusCode !== 200) { reject(new Error('BYMA status ' + r.statusCode)); return; }
+        https.get(ambitoUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' } }, r => {
+          if (r.statusCode !== 200) { reject(new Error('Ambito status ' + r.statusCode)); return; }
           let body = '';
           r.on('data', c => { body += c; });
           r.on('end', () => { try { resolve(JSON.parse(body)); } catch (e) { reject(e); } });
         }).on('error', reject);
       });
-      const arr = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-      const merval = arr.find(i => (i.symbol || i.descripcion || '').toUpperCase().includes('MERV') || (i.descripcion || '').toUpperCase().includes('MERVAL'));
-      const result = {
-        merval: merval ? {
-          price: merval.last ?? merval.closePrice ?? merval.value ?? null,
-          changePercent: merval.changePercent ?? merval.variation ?? null
-        } : null
-      };
+      // Respuesta: { valor, variacion, fecha, ... } — valor es string "$1.234.567"
+      const rawValor = data?.valor ?? data?.ultimo ?? null;
+      const price = rawValor ? parseFloat(String(rawValor).replace(/[$.,\s]/g, '').replace(',', '.')) || null : null;
+      const rawVar = data?.variacion ?? data?.variacion_puntos ?? null;
+      const changePercent = rawVar ? parseFloat(String(rawVar).replace('%', '').replace(',', '.')) || null : null;
+      const result = { merval: price ? { price, changePercent } : null };
       cacheIndices = { data: { indices: result }, ts: Date.now() };
-      return res.json({ ok: true, source: 'byma', indices: result });
+      return res.json({ ok: true, source: 'ambito', indices: result });
     } catch (e) {
       console.warn('[byma] Índices no disponibles:', e.message);
       return res.status(502).json({ ok: false, error: 'Índices no disponibles: ' + e.message });
