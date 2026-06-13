@@ -907,7 +907,7 @@ const Pulso = {
   toggleCedear(id) {
     const result = PulsoStore.toggleCedear(id);
     if (result === null) {
-      PulsoUI.toast('Ya elegiste 5 CEDEARs. Sacá uno primero.');
+      PulsoUI.toast('Ya elegiste 10 CEDEARs. Sacá uno primero.');
       return;
     }
     this.renderCedearList();
@@ -923,10 +923,8 @@ const Pulso = {
       .map(c => ({ ...this.enrichCedear(c), cantidad: cantidades[c.id] ?? 0 }));
 
     const conPrecio = ceds.filter(c => c.priceARS != null);
-    // Si el usuario cargó cantidades, usar esas; si no, contar 1 por cada uno
-    const tienenCantidad = ceds.some(c => c.cantidad > 0);
-    const totalARS = conPrecio.reduce((s, c) => s + c.priceARS * (tienenCantidad ? c.cantidad : 1), 0);
-    const totalUSD = conPrecio.reduce((s, c) => s + (c.priceUSD ?? 0) * (tienenCantidad ? c.cantidad : 1), 0);
+    const totalARS = conPrecio.reduce((s, c) => s + c.priceARS * c.cantidad, 0);
+    const totalUSD = conPrecio.reduce((s, c) => s + (c.priceUSD ?? 0) * c.cantidad, 0);
     const conChg = ceds.filter(c => c.chg != null);
     const promChg = conChg.length ? conChg.reduce((s, c) => s + c.chg, 0) / conChg.length : 0;
 
@@ -941,7 +939,7 @@ const Pulso = {
       hoyEl.className = '';
     } else {
       totalEl.textContent = '$' + PulsoUI.fmt(Math.round(totalARS));
-      usdEl.textContent = '≈ US$ ' + totalUSD.toFixed(2) + ' al MEP' + (tienenCantidad ? '' : ' · (ingresá tus cantidades)');
+      usdEl.textContent = '≈ US$ ' + totalUSD.toFixed(2) + ' al MEP';
       hoyEl.textContent = PulsoUI.fmtPct(promChg);
       hoyEl.className = promChg >= 0 ? 'green' : 'red';
     }
@@ -951,7 +949,7 @@ const Pulso = {
     if (tablaEl) {
       tablaEl.innerHTML = ceds.map(c => {
         const cant = c.cantidad;
-        const subtotalARS = c.priceARS != null ? c.priceARS * (cant || 1) : null;
+        const subtotalARS = c.priceARS != null && cant > 0 ? c.priceARS * cant : null;
         return `
           <div class="cartera-row">
             <div class="cartera-ticker">${c.id}</div>
@@ -997,8 +995,8 @@ const Pulso = {
     const cntCe = document.getElementById('counterCedears');
     const numCeds = PulsoStore.getCedears().length;
     if (cntCe) {
-      cntCe.textContent = numCeds + ' de 5';
-      cntCe.classList.toggle('full', numCeds === 5);
+      cntCe.textContent = numCeds + ' de 10';
+      cntCe.classList.toggle('full', numCeds === 10);
     }
   },
 

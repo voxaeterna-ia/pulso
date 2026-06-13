@@ -106,7 +106,7 @@ const PulsoStore = {
       this.setCedears(list.filter(x => x !== id));
       return false;
     } else {
-      if (list.length >= 5) return null;
+      if (list.length >= 10) return null;
       this.setCedears([...list, id]);
       return true;
     }
