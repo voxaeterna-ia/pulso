@@ -120,6 +120,10 @@ async function main() {
   const entries = outerZip.getEntries();
   progress(5, `ZIP abierto · ${entries.length} entradas encontradas`);
 
+  // Log de las primeras 20 entradas para debug
+  const preview = entries.slice(0, 20).map(e => e.entryName).join(', ');
+  progress(5, `Entradas: ${preview}`);
+
   // Crear BD temporal
   if (fs.existsSync(DB_TMP)) fs.unlinkSync(DB_TMP);
   const db = new Database(DB_TMP);
