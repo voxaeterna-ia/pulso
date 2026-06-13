@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /* ============================================
    PULSO · INGESTA DE SEPA
-   Uso: node scripts/ingestar-sepa.js <ruta-al-zip>
-   Emite líneas "PROGRESS:N:descripción" para el panel admin.
+   Usa unzip del sistema para evitar problemas de RAM.
    Swap atómico: si algo falla, sepa.db queda intacta.
    ============================================ */
 
 const path = require('path');
 const fs   = require('fs');
-const AdmZip = require('adm-zip');
+const { execSync, spawnSync } = require('child_process');
 const Database = require('better-sqlite3');
 
 const ZIP_PATH = process.argv[2];
 const DB_PATH  = process.env.DB_PATH || path.join(__dirname, '..', 'sepa.db');
 const DB_TMP   = DB_PATH + '.tmp';
+const TMP_DIR  = '/tmp/sepa_extract_' + Date.now();
 
 if (!ZIP_PATH || !fs.existsSync(ZIP_PATH)) {
   console.error('Uso: node scripts/ingestar-sepa.js <ruta-al-zip>');
@@ -34,25 +34,23 @@ function normalizarNombreCadena(nombre) {
     jumbo:     ['jumbo'],
     vea:       ['vea'],
     coto:      ['coto'],
-    walmart:   ['walmart', 'changomas'],
+    walmart:   ['walmart'],
+    changomas: ['changomas'],
     toledo:    ['toledo'],
     makro:     ['makro'],
     laanonima: ['anonima'],
     agricola:  ['agricola'],
-    chango:    ['changomassrl', 'changomas'],
     libertad:  ['libertad'],
-    atomo:     ['atomo', 'átomo'],
+    atomo:     ['atomo'],
     diarco:    ['diarco'],
     ekono:     ['ekono'],
-    cordiez:   ['cordiez'],
   };
   for (const [clave, variantes] of Object.entries(MAP)) {
     for (const v of variantes) {
       if (n.includes(v)) return clave;
     }
   }
-  // Fallback: primeras 20 letras del nombre original limpio
-  return nombre.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'otro';
+  return nombre.replace(/[^a-zA-Z0-9 ]/g, '').trim().toLowerCase().replace(/\s+/g, '').slice(0, 25) || 'otro';
 }
 
 function parsearLinea(linea) {
@@ -71,37 +69,43 @@ function findCol(headers, ...nombres) {
   return -1;
 }
 
-// Lee el nombre de la cadena desde el CSV de comercios
-function leerNombreCadena(csvBuffer) {
-  const text = quitarBOM(csvBuffer.toString('utf8'));
-  const lineas = text.split('\n');
-  if (lineas.length < 2) return null;
-  const headers = parsearLinea(lineas[0]);
-  const iNombre = findCol(headers, 'comercio_bandera_nombre', 'bandera_nombre', 'razon_social');
-  if (iNombre < 0) return null;
-  // Buscar la primera fila con datos
-  for (let i = 1; i < lineas.length; i++) {
-    const cols = parsearLinea(lineas[i].trim());
-    const nombre = cols[iNombre]?.trim();
-    if (nombre) return nombre;
-  }
+function leerNombreCadena(csvPath) {
+  try {
+    const text = quitarBOM(fs.readFileSync(csvPath, 'utf8'));
+    const lineas = text.split('\n');
+    if (lineas.length < 2) return null;
+    const headers = parsearLinea(lineas[0]);
+    const iNombre = findCol(headers, 'comercio_bandera_nombre', 'bandera_nombre', 'razon_social');
+    if (iNombre < 0) return null;
+    for (let i = 1; i < lineas.length; i++) {
+      const cols = parsearLinea(lineas[i].trim());
+      const nombre = cols[iNombre] && cols[iNombre].trim();
+      if (nombre) return nombre;
+    }
+  } catch (e) {}
   return null;
 }
 
-function procesarProductosCSV(csvBuffer, cadena, insertStmt) {
-  const text = quitarBOM(csvBuffer.toString('utf8'));
+function procesarProductosCSV(csvPath, cadena, insertStmt) {
+  let text;
+  try {
+    text = quitarBOM(fs.readFileSync(csvPath, 'utf8'));
+  } catch (e) {
+    console.error('[ingestar] No se pudo leer:', csvPath);
+    return 0;
+  }
+
   const lineas = text.split('\n');
   if (lineas.length < 2) return 0;
 
   const headers = parsearLinea(lineas[0]);
-
   const iEan    = findCol(headers, 'productos_ean', 'ean', 'codigo_ean');
   const iNombre = findCol(headers, 'productos_descripcion', 'descripcion', 'nombre', 'descripcion_producto');
   const iMarca  = findCol(headers, 'productos_marca', 'marca');
   const iPrecio = findCol(headers, 'productos_precio_lista', 'precio_lista', 'precio_unitario', 'precio');
 
   if (iNombre < 0 || iPrecio < 0) {
-    console.error(`[ingestar] Sin columnas de producto en CSV de ${cadena}. Headers: ${headers.slice(0,8).join('|')}`);
+    console.error(`[ingestar] Sin columnas de producto en ${path.basename(csvPath)}. Headers: ${headers.slice(0, 6).join('|')}`);
     return 0;
   }
 
@@ -109,161 +113,153 @@ function procesarProductosCSV(csvBuffer, cadena, insertStmt) {
   for (let i = 1; i < lineas.length; i++) {
     const linea = lineas[i].trim();
     if (!linea) continue;
-
-    const cols   = parsearLinea(linea);
-    const nombre = cols[iNombre]?.trim();
-    const precioStr = cols[iPrecio]?.trim().replace(',', '.');
-    const precio = parseFloat(precioStr);
-
+    const cols    = parsearLinea(linea);
+    const nombre  = cols[iNombre] && cols[iNombre].trim();
+    const precio  = parseFloat((cols[iPrecio] || '').trim().replace(',', '.'));
     if (!nombre || isNaN(precio) || precio <= 0) continue;
-
-    const ean   = iEan   >= 0 ? (cols[iEan]?.trim()   || null) : null;
-    const marca = iMarca >= 0 ? (cols[iMarca]?.trim()  || null) : null;
-
+    const ean   = iEan   >= 0 ? (cols[iEan]   && cols[iEan].trim()   || null) : null;
+    const marca = iMarca >= 0 ? (cols[iMarca] && cols[iMarca].trim() || null) : null;
     insertStmt.run(ean, nombre, nombre.toLowerCase(), marca, cadena, precio);
     insertados++;
   }
   return insertados;
 }
 
-async function main() {
-  progress(2, 'Abriendo ZIP principal...');
+function unzip(zipFile, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  const result = spawnSync('unzip', ['-q', '-o', zipFile, '-d', destDir]);
+  if (result.status !== 0) throw new Error('unzip falló: ' + (result.stderr || '').toString().slice(0, 200));
+}
 
-  let outerZip;
+function cleanup() {
+  try { execSync(`rm -rf "${TMP_DIR}"`); } catch (_) {}
+}
+
+async function main() {
+  progress(2, 'Extrayendo ZIP principal al disco...');
+
   try {
-    outerZip = new AdmZip(ZIP_PATH);
+    unzip(ZIP_PATH, TMP_DIR);
   } catch (e) {
-    console.error('[ingestar] No se pudo abrir el ZIP:', e.message);
+    console.error('[ingestar] No se pudo extraer el ZIP:', e.message);
+    cleanup();
     process.exit(1);
   }
 
-  const entries = outerZip.getEntries();
-  progress(5, `ZIP abierto · ${entries.length} entradas`);
+  // Buscar ZIPs internos o CSVs directos
+  let innerZips = [];
+  let rootCsvs  = [];
 
-  // Crear BD temporal
+  function walkDir(dir) {
+    for (const item of fs.readdirSync(dir)) {
+      const full = path.join(dir, item);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) walkDir(full);
+      else if (item.toLowerCase().endsWith('.zip')) innerZips.push(full);
+      else if (item.toLowerCase().endsWith('.csv')) rootCsvs.push(full);
+    }
+  }
+  walkDir(TMP_DIR);
+
+  progress(5, `Encontrados: ${innerZips.length} ZIPs internos, ${rootCsvs.length} CSVs directos`);
+
   if (fs.existsSync(DB_TMP)) fs.unlinkSync(DB_TMP);
   const db = new Database(DB_TMP);
-
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
     CREATE TABLE IF NOT EXISTS productos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ean TEXT,
-      nombre TEXT NOT NULL,
-      nombre_lower TEXT NOT NULL,
-      marca TEXT,
-      cadena TEXT NOT NULL,
-      precio REAL NOT NULL
+      ean TEXT, nombre TEXT NOT NULL, nombre_lower TEXT NOT NULL,
+      marca TEXT, cadena TEXT NOT NULL, precio REAL NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS meta (
-      key TEXT PRIMARY KEY,
-      value TEXT
-    );
+    CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
   `);
-
   const insertStmt = db.prepare(
     'INSERT INTO productos (ean, nombre, nombre_lower, marca, cadena, precio) VALUES (?, ?, ?, ?, ?, ?)'
   );
 
-  let totalFilas = 0;
-  let cadenasEncontradas = 0;
+  let totalFilas = 0, cadenasEncontradas = 0;
 
-  const zipEntries = entries.filter(e => e.entryName.endsWith('.zip'));
-  const csvEntries = entries.filter(e => e.entryName.endsWith('.csv'));
+  // ── Caso A: ZIPs internos ──
+  if (innerZips.length > 0) {
+    for (let idx = 0; idx < innerZips.length; idx++) {
+      const zipFile = innerZips[idx];
+      const pct = Math.round(5 + (idx / innerZips.length) * 85);
+      progress(pct, `Procesando ${path.basename(zipFile)}...`);
 
-  // ── Caso A: ZIP principal → ZIPs internos por cadena ──
-  if (zipEntries.length > 0) {
-    for (let idx = 0; idx < zipEntries.length; idx++) {
-      const entry = zipEntries[idx];
-      const pct = Math.round(5 + (idx / zipEntries.length) * 85);
-      progress(pct, `Abriendo ${path.basename(entry.entryName)}...`);
-
-      let innerZip;
+      const innerDir = zipFile + '_extracted';
       try {
-        innerZip = new AdmZip(entry.getData());
+        unzip(zipFile, innerDir);
       } catch (e) {
-        console.error(`[ingestar] Error abriendo ZIP interno ${entry.entryName}:`, e.message);
+        progress(pct, `Error extrayendo ${path.basename(zipFile)}: ${e.message.slice(0, 80)}`);
         continue;
       }
 
-      const innerEntries = innerZip.getEntries();
-      const csvs = innerEntries.filter(e => e.entryName.toLowerCase().endsWith('.csv'));
+      // Recolectar CSVs del ZIP interno
+      const csvs = [];
+      function walkInner(dir) {
+        for (const item of fs.readdirSync(dir)) {
+          const full = path.join(dir, item);
+          if (fs.statSync(full).isDirectory()) walkInner(full);
+          else if (item.toLowerCase().endsWith('.csv')) csvs.push(full);
+        }
+      }
+      walkInner(innerDir);
 
-      // Identificar CSV de comercios (para obtener el nombre de la cadena)
-      const comerciosCSV = csvs.find(e => e.entryName.toLowerCase().includes('comercio'));
-      // Identificar CSV de productos (excluir comercios y sucursales)
-      const productosCSVs = csvs.filter(e => {
-        const n = e.entryName.toLowerCase();
+      // Obtener nombre de cadena del CSV de comercios
+      const comerciosCSV = csvs.find(f => path.basename(f).toLowerCase().includes('comercio'));
+      const productosCsvs = csvs.filter(f => {
+        const n = path.basename(f).toLowerCase();
         return !n.includes('comercio') && !n.includes('sucursal');
       });
 
-      // Obtener nombre de cadena
-      let cadena = path.basename(entry.entryName, '.zip').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      let cadena = normalizarNombreCadena(path.basename(zipFile, '.zip'));
       if (comerciosCSV) {
-        const nombreReal = leerNombreCadena(comerciosCSV.getData());
+        const nombreReal = leerNombreCadena(comerciosCSV);
         if (nombreReal) {
           cadena = normalizarNombreCadena(nombreReal);
-          progress(pct, `Cadena detectada: "${nombreReal}" → ${cadena}`);
+          progress(pct, `Cadena: "${nombreReal}" → ${cadena}`);
         }
       }
 
-      // Si no hay CSVs de productos, intentar con todos
-      const csvsProcesar = productosCSVs.length > 0 ? productosCSVs : csvs;
-
+      const csvsProcesar = productosCsvs.length > 0 ? productosCsvs : csvs;
       const filas = db.transaction(() => {
         let total = 0;
-        for (const csv of csvsProcesar) {
-          total += procesarProductosCSV(csv.getData(), cadena, insertStmt);
-        }
+        for (const csv of csvsProcesar) total += procesarProductosCSV(csv, cadena, insertStmt);
         return total;
       })();
 
-      if (filas > 0) {
-        totalFilas += filas;
-        cadenasEncontradas++;
-        progress(pct, `${cadena}: ${filas.toLocaleString('es-AR')} productos`);
-      }
+      if (filas > 0) { totalFilas += filas; cadenasEncontradas++; }
+      progress(pct, `${cadena}: ${filas.toLocaleString('es-AR')} productos`);
+
+      // Liberar espacio del ZIP interno extraído
+      try { execSync(`rm -rf "${innerDir}"`); } catch (_) {}
     }
 
-  // ── Caso B: ZIP principal → CSVs directos ──
-  } else if (csvEntries.length > 0) {
-    // Buscar CSV de comercios para mapear id_bandera → nombre
-    const comerciosEntry = csvEntries.find(e => e.entryName.toLowerCase().includes('comercio'));
-    let banderaNombre = null;
-    if (comerciosEntry) {
-      banderaNombre = leerNombreCadena(comerciosEntry.getData());
-    }
-
-    const productosCsvs = csvEntries.filter(e => {
-      const n = e.entryName.toLowerCase();
+  // ── Caso B: CSVs directos ──
+  } else if (rootCsvs.length > 0) {
+    const comerciosCSV = rootCsvs.find(f => path.basename(f).toLowerCase().includes('comercio'));
+    const productosCsvs = rootCsvs.filter(f => {
+      const n = path.basename(f).toLowerCase();
       return !n.includes('comercio') && !n.includes('sucursal');
     });
-
-    const csvsProcesar = productosCsvs.length > 0 ? productosCsvs : csvEntries;
+    const csvsProcesar = productosCsvs.length > 0 ? productosCsvs : rootCsvs;
 
     for (let idx = 0; idx < csvsProcesar.length; idx++) {
-      const entry = csvsProcesar[idx];
+      const csvPath = csvsProcesar[idx];
       const pct = Math.round(5 + (idx / csvsProcesar.length) * 85);
-      progress(pct, `Procesando ${path.basename(entry.entryName)}...`);
-
-      const cadena = banderaNombre
-        ? normalizarNombreCadena(banderaNombre)
-        : normalizarNombreCadena(path.basename(entry.entryName, '.csv'));
-
-      const filas = db.transaction(() =>
-        procesarProductosCSV(entry.getData(), cadena, insertStmt)
-      )();
-
-      if (filas > 0) {
-        totalFilas += filas;
-        cadenasEncontradas++;
-        progress(pct, `${cadena}: ${filas.toLocaleString('es-AR')} productos`);
-      }
+      const cadena = comerciosCSV
+        ? normalizarNombreCadena(leerNombreCadena(comerciosCSV))
+        : normalizarNombreCadena(path.basename(csvPath, '.csv'));
+      progress(pct, `Procesando ${path.basename(csvPath)}...`);
+      const filas = db.transaction(() => procesarProductosCSV(csvPath, cadena, insertStmt))();
+      if (filas > 0) { totalFilas += filas; cadenasEncontradas++; }
     }
   } else {
-    console.error('[ingestar] El ZIP no contiene ZIPs ni CSVs reconocibles');
+    console.error('[ingestar] No se encontraron ZIPs ni CSVs en el archivo');
     db.close();
+    cleanup();
     fs.unlinkSync(DB_TMP);
     process.exit(1);
   }
@@ -276,14 +272,15 @@ async function main() {
   `);
 
   const now = new Date().toISOString();
-  db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('last_update', ?)").run(now);
-  db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('source_file', ?)").run(path.basename(ZIP_PATH));
-  db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('total_rows',  ?)").run(String(totalFilas));
-  db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('cadenas',     ?)").run(String(cadenasEncontradas));
-
+  db.prepare("INSERT OR REPLACE INTO meta VALUES ('last_update', ?)").run(now);
+  db.prepare("INSERT OR REPLACE INTO meta VALUES ('source_file', ?)").run(path.basename(ZIP_PATH));
+  db.prepare("INSERT OR REPLACE INTO meta VALUES ('total_rows', ?)").run(String(totalFilas));
+  db.prepare("INSERT OR REPLACE INTO meta VALUES ('cadenas', ?)").run(String(cadenasEncontradas));
   db.close();
 
-  progress(97, 'Swap atómico...');
+  progress(97, 'Limpiando temporales y swap atómico...');
+  cleanup();
+
   if (fs.existsSync(DB_PATH)) fs.renameSync(DB_PATH, DB_PATH + '.bak');
   fs.renameSync(DB_TMP, DB_PATH);
   if (fs.existsSync(DB_PATH + '.bak')) try { fs.unlinkSync(DB_PATH + '.bak'); } catch (_) {}
@@ -294,6 +291,7 @@ async function main() {
 
 main().catch(e => {
   console.error('[ingestar] ERROR FATAL:', e.message);
+  cleanup();
   if (fs.existsSync(DB_TMP)) try { fs.unlinkSync(DB_TMP); } catch (_) {}
   process.exit(1);
 });
