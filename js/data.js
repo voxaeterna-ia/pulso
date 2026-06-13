@@ -74,7 +74,19 @@ const PulsoData = {
     carrefour: 'Carrefour',
     disco: 'Disco',
     jumbo: 'Jumbo',
-    vea: 'Vea'
+    vea: 'Vea',
+    coto: 'Coto',
+    walmart: 'Walmart',
+    changomas: 'Changomás',
+    laanonima: 'La Anónima',
+    agricola: 'La Agrícola',
+    cooperativaobreralimitada: 'Coop. Obrera',
+    libertad: 'Libertad',
+    atomo: 'Átomo',
+    diarco: 'Diarco',
+    ekono: 'Ekono',
+    toledo: 'Toledo',
+    makro: 'Makro',
   },
 
   // ============= CEDEARS - SOLO METADATA =============

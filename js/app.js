@@ -422,7 +422,7 @@ const Pulso = {
     btn.textContent = 'Buscando...';
     card.style.display = 'block';
     title.textContent = `buscando "${query}"...`;
-    resultsDiv.innerHTML = '<p class="meta-line" style="padding: 20px; text-align: center;">Consultando los 5 supermercados...</p>';
+    resultsDiv.innerHTML = '<p class="meta-line" style="padding: 20px; text-align: center;">Consultando supermercados...</p>';
 
     const data = await PulsoAPI.buscarProductos(query);
 
@@ -481,14 +481,14 @@ const Pulso = {
 
     const yaEnChanguito = p.ean ? PulsoStore.tieneProducto(p.ean) : false;
 
-    // Mini-grid de precios por super
-    const preciosHTML = ['dia', 'carrefour', 'disco', 'jumbo', 'vea'].map(s => {
-      const info = p.precios[s];
+    // Mini-grid de precios — usa las cadenas que realmente vienen en la respuesta
+    const preciosHTML = Object.entries(p.precios).map(([s, info]) => {
+      const nombre = PulsoData.supermercadosNombres[s] || info.supermercado || s;
       if (!info || info.precio == null) {
-        return `<div class="price-cell-mini empty"><span class="ps-name">${PulsoData.supermercadosNombres[s]}</span><span class="ps-val">—</span></div>`;
+        return `<div class="price-cell-mini empty"><span class="ps-name">${nombre}</span><span class="ps-val">—</span></div>`;
       }
       const isMin = info.precio === minPrecio;
-      return `<div class="price-cell-mini ${isMin ? 'cheapest' : ''}"><span class="ps-name">${PulsoData.supermercadosNombres[s]}</span><span class="ps-val">$${PulsoUI.fmt(info.precio)}</span></div>`;
+      return `<div class="price-cell-mini ${isMin ? 'cheapest' : ''}"><span class="ps-name">${nombre}</span><span class="ps-val">$${PulsoUI.fmt(info.precio)}</span></div>`;
     }).join('');
 
     const eanData = p.ean ? `data-ean="${p.ean}"` : '';
@@ -501,7 +501,7 @@ const Pulso = {
           <div class="sr-info">
             <div class="sr-name">${this.escape(p.nombre)}</div>
             ${p.marca ? `<div class="sr-brand">${this.escape(p.marca)}</div>` : ''}
-            <div class="sr-meta">disponible en ${supersConPrecio} de 5 supermercados</div>
+            <div class="sr-meta">disponible en ${supersConPrecio} supermercado${supersConPrecio !== 1 ? 's' : ''}</div>
           </div>
           <button
             class="sr-add ${yaEnChanguito ? 'added' : ''}"
