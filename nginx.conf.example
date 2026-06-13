@@ -1,0 +1,46 @@
+# Nginx — configuración de ejemplo para Pulso
+# Copiá esto a /etc/nginx/sites-available/pulso
+# y hacé symlink: ln -s /etc/nginx/sites-available/pulso /etc/nginx/sites-enabled/
+#
+# Reemplazá "tudominio.com" con tu dominio real.
+# Si no tenés dominio todavía, usá la IP del VPS.
+
+server {
+    listen 80;
+    server_name tudominio.com www.tudominio.com;
+
+    # Tamaño máximo de upload (el ZIP del SEPA pesa ~330 MB)
+    client_max_body_size 600M;
+
+    # Logs
+    access_log /var/log/nginx/pulso.access.log;
+    error_log  /var/log/nginx/pulso.error.log;
+
+    # Todo va al servidor Node
+    location / {
+        proxy_pass         http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+
+        # Timeout largo para la subida del ZIP
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    # SSE (progreso de ingesta) necesita buffering desactivado
+    location /api/admin/progress {
+        proxy_pass         http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Connection '';
+        proxy_buffering    off;
+        proxy_cache        off;
+        proxy_read_timeout 3600s;
+    }
+}
+
+# Para HTTPS con Let's Encrypt, después de instalar certbot:
+# sudo certbot --nginx -d tudominio.com -d www.tudominio.com

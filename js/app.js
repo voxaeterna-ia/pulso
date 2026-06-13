@@ -126,7 +126,12 @@ const Pulso = {
 
   // ============= PULSO DEL DÍA =============
   renderPulsoDelDia() {
-    const blueChg = 0.7; // placeholder, eventualmente histórico
+    // Spread compra/venta del blue como señal de tensión cambiaria
+    // Un spread > 2% indica nerviosismo; DolarAPI no provee variación diaria histórica
+    const blue = this.state.blue;
+    const blueChg = (blue?.compra && blue?.venta)
+      ? ((blue.venta - blue.compra) / blue.compra) * 100
+      : 1.5; // spread típico de referencia
     const riesgoVal = this.state.riesgo?.valor ?? 724;
     const inflVal = this.state.inflacion?.valor ?? 2.4;
 
