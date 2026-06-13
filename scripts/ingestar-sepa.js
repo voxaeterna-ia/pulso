@@ -86,43 +86,62 @@ function leerNombreCadena(csvPath) {
   return null;
 }
 
-function procesarProductosCSV(csvPath, cadena, insertStmt) {
-  let text;
-  try {
-    text = quitarBOM(fs.readFileSync(csvPath, 'utf8'));
-  } catch (e) {
-    console.error('[ingestar] No se pudo leer:', csvPath);
-    return 0;
-  }
+function procesarProductosCSV(csvPath, cadena, db, insertStmt) {
+  const readline = require('readline');
+  return new Promise((resolve) => {
+    let headers = null;
+    let iEan = -1, iNombre = -1, iMarca = -1, iPrecio = -1;
+    let insertados = 0;
+    let firstLine = true;
+    const BATCH = 500;
+    let batch = [];
 
-  const lineas = text.split('\n');
-  if (lineas.length < 2) return 0;
+    const flush = () => {
+      if (batch.length === 0) return;
+      db.transaction(() => { for (const r of batch) insertStmt.run(...r); })();
+      insertados += batch.length;
+      batch = [];
+    };
 
-  const headers = parsearLinea(lineas[0]);
-  const iEan    = findCol(headers, 'productos_ean', 'ean', 'codigo_ean');
-  const iNombre = findCol(headers, 'productos_descripcion', 'descripcion', 'nombre', 'descripcion_producto');
-  const iMarca  = findCol(headers, 'productos_marca', 'marca');
-  const iPrecio = findCol(headers, 'productos_precio_lista', 'precio_lista', 'precio_unitario', 'precio');
+    let stream;
+    try {
+      stream = fs.createReadStream(csvPath, { encoding: 'utf8' });
+    } catch (e) {
+      console.error('[ingestar] No se pudo leer:', csvPath);
+      return resolve(0);
+    }
 
-  if (iNombre < 0 || iPrecio < 0) {
-    console.error(`[ingestar] Sin columnas de producto en ${path.basename(csvPath)}. Headers: ${headers.slice(0, 6).join('|')}`);
-    return 0;
-  }
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
-  let insertados = 0;
-  for (let i = 1; i < lineas.length; i++) {
-    const linea = lineas[i].trim();
-    if (!linea) continue;
-    const cols    = parsearLinea(linea);
-    const nombre  = cols[iNombre] && cols[iNombre].trim();
-    const precio  = parseFloat((cols[iPrecio] || '').trim().replace(',', '.'));
-    if (!nombre || isNaN(precio) || precio <= 0) continue;
-    const ean   = iEan   >= 0 ? (cols[iEan]   && cols[iEan].trim()   || null) : null;
-    const marca = iMarca >= 0 ? (cols[iMarca] && cols[iMarca].trim() || null) : null;
-    insertStmt.run(ean, nombre, nombre.toLowerCase(), marca, cadena, precio);
-    insertados++;
-  }
-  return insertados;
+    rl.on('line', (linea) => {
+      if (firstLine) {
+        linea = quitarBOM(linea);
+        firstLine = false;
+        headers = parsearLinea(linea);
+        iEan    = findCol(headers, 'productos_ean', 'ean', 'codigo_ean');
+        iNombre = findCol(headers, 'productos_descripcion', 'descripcion', 'nombre', 'descripcion_producto');
+        iMarca  = findCol(headers, 'productos_marca', 'marca');
+        iPrecio = findCol(headers, 'productos_precio_lista', 'precio_lista', 'precio_unitario', 'precio');
+        if (iNombre < 0 || iPrecio < 0) {
+          console.error(`[ingestar] Sin columnas en ${path.basename(csvPath)}: ${headers.slice(0,6).join('|')}`);
+          rl.close();
+        }
+        return;
+      }
+      if (!linea.trim() || iNombre < 0) return;
+      const cols   = parsearLinea(linea);
+      const nombre = cols[iNombre] && cols[iNombre].trim();
+      const precio = parseFloat((cols[iPrecio] || '').trim().replace(',', '.'));
+      if (!nombre || isNaN(precio) || precio <= 0) return;
+      const ean   = iEan   >= 0 ? (cols[iEan]   && cols[iEan].trim()   || null) : null;
+      const marca = iMarca >= 0 ? (cols[iMarca] && cols[iMarca].trim() || null) : null;
+      batch.push([ean, nombre, nombre.toLowerCase(), marca, cadena, precio]);
+      if (batch.length >= BATCH) flush();
+    });
+
+    rl.on('close', () => { flush(); resolve(insertados); });
+    rl.on('error', (e) => { console.error('[ingestar] Error leyendo CSV:', e.message); resolve(insertados); });
+  });
 }
 
 function unzip(zipFile, destDir) {
@@ -224,11 +243,8 @@ async function main() {
       }
 
       const csvsProcesar = productosCsvs.length > 0 ? productosCsvs : csvs;
-      const filas = db.transaction(() => {
-        let total = 0;
-        for (const csv of csvsProcesar) total += procesarProductosCSV(csv, cadena, insertStmt);
-        return total;
-      })();
+      let filas = 0;
+      for (const csv of csvsProcesar) filas += await procesarProductosCSV(csv, cadena, db, insertStmt);
 
       if (filas > 0) { totalFilas += filas; cadenasEncontradas++; }
       progress(pct, `${cadena}: ${filas.toLocaleString('es-AR')} productos`);
@@ -253,7 +269,7 @@ async function main() {
         ? normalizarNombreCadena(leerNombreCadena(comerciosCSV))
         : normalizarNombreCadena(path.basename(csvPath, '.csv'));
       progress(pct, `Procesando ${path.basename(csvPath)}...`);
-      const filas = db.transaction(() => procesarProductosCSV(csvPath, cadena, insertStmt))();
+      const filas = await procesarProductosCSV(csvPath, cadena, db, insertStmt);
       if (filas > 0) { totalFilas += filas; cadenasEncontradas++; }
     }
   } else {
