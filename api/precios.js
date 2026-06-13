@@ -62,11 +62,12 @@ router.get('/', (req, res) => {
     } else {
       const termino = '%' + q.trim().toLowerCase() + '%';
       rows = db.prepare(
-        `SELECT ean, nombre, marca, cadena, precio
+        `SELECT ean, nombre, marca, cadena, MIN(precio) as precio
          FROM productos
          WHERE nombre_lower LIKE ?
+         GROUP BY cadena, COALESCE(ean, nombre_lower)
          ORDER BY nombre_lower, cadena
-         LIMIT 200`
+         LIMIT 300`
       ).all(termino);
     }
 
