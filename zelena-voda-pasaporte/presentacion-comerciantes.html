@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pasaporte de Beneficios — Zelena Voda</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#f5f0e8;font-family:'Inter',sans-serif;color:#0d2340;padding:2rem 1rem;}
+  .page{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem;}
+
+  /* Header */
+  .header{background:#0d2340;border-radius:20px;padding:2.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:0.8rem;text-align:center;}
+  .header-logo{width:72px;height:72px;border:2px solid #c9a84c;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:0.3rem;}
+  .header h1{font-family:'Playfair Display',serif;color:#c9a84c;font-size:2rem;font-weight:700;letter-spacing:0.08em;}
+  .header .sub{color:#e8c97a;font-size:0.65rem;letter-spacing:0.28em;font-family:'Inter',sans-serif;font-weight:600;}
+  .header .sub2{color:#e8c97a;font-size:0.75rem;letter-spacing:0.18em;margin-top:0.3rem;}
+  .header .tagline{color:rgba(232,201,122,0.75);font-size:0.78rem;font-style:italic;margin-top:0.5rem;max-width:420px;line-height:1.6;}
+  .divider{width:50px;height:1px;background:#c9a84c;margin:0.5rem auto;}
+
+  /* Section card */
+  .card{background:white;border-radius:16px;border:1px solid #ede5d4;padding:1.8rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+  .card-gold{background:#0d2340;border-radius:16px;border:1.5px solid #c9a84c;padding:1.8rem;}
+  .section-title{font-family:'Playfair Display',serif;font-size:1.15rem;color:#0d2340;margin-bottom:1rem;font-weight:700;}
+  .section-title-gold{font-family:'Playfair Display',serif;font-size:1.15rem;color:#c9a84c;margin-bottom:1rem;font-weight:700;}
+
+  /* Beneficios list */
+  .benefit-list{display:flex;flex-direction:column;gap:0.9rem;}
+  .benefit-item{display:flex;align-items:flex-start;gap:0.9rem;}
+  .benefit-icon{width:42px;height:42px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+  .benefit-text h4{font-size:0.88rem;font-weight:700;color:#0d2340;margin-bottom:2px;}
+  .benefit-text p{font-size:0.78rem;color:#666;line-height:1.5;}
+
+  /* How it works steps */
+  .steps{display:flex;flex-direction:column;gap:1rem;}
+  .step{display:flex;align-items:flex-start;gap:1rem;}
+  .step-num{width:36px;height:36px;background:#0d2340;color:#c9a84c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;font-family:'Playfair Display',serif;}
+  .step-text h4{font-size:0.88rem;font-weight:700;color:white;margin-bottom:2px;}
+  .step-text p{font-size:0.75rem;color:rgba(232,201,122,0.75);line-height:1.5;}
+
+  /* Data form */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;}
+  .form-field{background:#faf8f4;border:1px solid #e0d8c8;border-radius:10px;padding:0.7rem 0.9rem;}
+  .form-field label{font-size:0.55rem;color:#888;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:4px;}
+  .form-field .value{font-size:0.82rem;color:#0d2340;min-height:18px;border-bottom:1px dashed #c9a84c;}
+  .form-field.full{grid-column:1/-1;}
+
+  /* PIN box */
+  .pin-box{background:linear-gradient(135deg,#0d2340,#1a3558);border-radius:14px;border:1.5px solid #c9a84c;padding:1.2rem 1.4rem;display:flex;align-items:center;gap:1.2rem;}
+  .pin-digits{display:flex;gap:0.5rem;}
+  .pin-digit{width:44px;height:52px;background:#faf8f4;border:2px solid #c9a84c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#0d2340;}
+  .pin-info h4{color:#c9a84c;font-size:0.82rem;font-weight:700;margin-bottom:4px;}
+  .pin-info p{color:#e8c97a;font-size:0.7rem;line-height:1.5;}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0.7rem;}
+  .stat{background:#faf4e8;border:1px solid #e8d8a0;border-radius:12px;padding:0.9rem;text-align:center;}
+  .stat .num{font-size:1.6rem;font-weight:700;color:#0d2340;font-family:'Playfair Display',serif;}
+  .stat .lbl{font-size:0.58rem;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-top:2px;line-height:1.3;}
+
+  /* Footer */
+  .footer{background:#0d2340;border-radius:16px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.6rem;text-align:center;}
+  .footer .url{color:#c9a84c;font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;letter-spacing:0.05em;}
+  .footer p{color:#e8c97a;font-size:0.7rem;line-height:1.6;}
+
+  /* Firma */
+  .firma-line{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;}
+  .firma-field{border-bottom:1px solid #c9a84c;padding-bottom:4px;}
+  .firma-field label{font-size:0.55rem;color:rgba(232,201,122,0.6);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:24px;}
+
+  .highlight{background:linear-gradient(135deg,#faf4e8,#f5edcf);border:1.5px solid #c9a84c;border-radius:12px;padding:1rem 1.2rem;}
+  .highlight p{font-size:0.8rem;color:#4a3728;line-height:1.7;font-style:italic;}
+
+  @media print {
+    body{background:white;padding:0;}
+    .page{gap:1rem;}
+    .card,.card-gold{box-shadow:none;break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">
+      <svg width="42" height="42" viewBox="0 0 52 52" fill="none">
+        <path d="M26 8 L20 20 L26 18 L32 20 Z" fill="#c9a84c"/>
+        <path d="M18 14 L13 24 L18 22 L23 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M34 14 L29 24 L34 22 L39 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M8 30 Q15 26 26 28 Q37 26 44 30 Q37 34 26 32 Q15 34 8 30Z" fill="#c9a84c" opacity="0.5"/>
+        <path d="M6 36 Q15 31 26 33 Q37 31 46 36 Q37 41 26 39 Q15 41 6 36Z" fill="#c9a84c" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="sub">ZELENA VODA — APART HOTEL</div>
+    <h1>PASAPORTE<br/>DE BENEFICIOS</h1>
+    <div class="divider"></div>
+    <div class="sub2">VILLA GESELL · TEMPORADA 2026</div>
+    <div class="tagline">Conectamos a nuestros huéspedes con los mejores comercios de Villa Gesell a través de una app exclusiva de descuentos y beneficios.</div>
+  </div>
+
+  <!-- QUÉ ES -->
+  <div class="card">
+    <div class="section-title">¿Qué es el Pasaporte de Beneficios?</div>
+    <div class="highlight" style="margin-bottom:1rem;">
+      <p>Es una <strong>aplicación exclusiva para los huéspedes de Zelena Voda</strong> que les permite acceder a descuentos y promociones especiales en los comercios adheridos de Villa Gesell durante toda su estadía.</p>
+    </div>
+    <div class="benefit-list">
+      <div class="benefit-item">
+        <div class="benefit-icon">📱</div>
+        <div class="benefit-text">
+          <h4>App gratuita para el huésped</h4>
+          <p>Se instala en el celular como aplicación. El huésped crea su pasaporte digital al hacer check-in y lo tiene disponible en todo momento.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔑</div>
+        <div class="benefit-text">
+          <h4>Sistema simple de PIN</h4>
+          <p>El huésped llega a tu comercio, consume, y vos le das tu PIN de 4 dígitos. Él lo ingresa en la app y queda registrado el descuento al instante.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🎯</div>
+        <div class="benefit-text">
+          <h4>Clientes ya decididos a gastar</h4>
+          <p>Los huéspedes de Zelena Voda son turistas alojados en el hotel con ganas de conocer y consumir en la zona. Tu comercio aparece en su app desde el primer día.</p>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">📊</div>
+        <div class="benefit-text">
+          <h4>Estadísticas en tiempo real</h4>
+          <p>Desde tu panel podés ver cuántos descuentos otorgaste y quiénes fueron los huéspedes que consumieron en tu comercio.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CÓMO FUNCIONA -->
+  <div class="card-gold">
+    <div class="section-title-gold">¿Cómo funciona paso a paso?</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4>El huésped llega al hotel y crea su Pasaporte Digital</h4>
+          <p>Al hacer check-in activa la app y ve todos los comercios adheridos con sus beneficios.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4>Ve tu comercio en la app y decide visitarte</h4>
+          <p>Tu nombre, categoría, foto, beneficio y datos de contacto están visibles para todos los huéspedes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4>Consume en tu comercio</h4>
+          <p>El huésped realiza su consumo normalmente. Vos le aplicás el descuento acordado.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <h4>Le das tu PIN de 4 dígitos secreto</h4>
+          <p>El huésped lo ingresa en la app, queda registrado el uso. Simple, rápido, sin papeles.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TU PIN -->
+  <div class="card">
+    <div class="section-title">Tu PIN de Descuento</div>
+    <p style="font-size:0.78rem;color:#666;margin-bottom:1rem;line-height:1.6;">Cada comercio tiene su propio PIN de 4 dígitos que vos elegís y podés cambiar cuando quieras desde tu panel. Solo vos lo conocés — se lo das al huésped únicamente cuando realiza el consumo.</p>
+    <div class="pin-box">
+      <div class="pin-digits">
+        <div class="pin-digit">·</div>
+        <div class="pin-digit">·</div>
+        <div class="pin-digit">·</div>
+        <div class="pin-digit">·</div>
+      </div>
+      <div class="pin-info">
+        <h4>Tu PIN exclusivo</h4>
+        <p>Solo vos lo conocés.<br/>Lo ingresa el huésped<br/>al consumir en tu local.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATOS A COMPLETAR -->
+  <div class="card">
+    <div class="section-title">Datos de tu Comercio para la App</div>
+    <p style="font-size:0.78rem;color:#666;margin-bottom:1.2rem;line-height:1.6;">Completá los siguientes datos para que podamos cargarte en la aplicación:</p>
+    <div class="form-grid">
+      <div class="form-field full">
+        <label>Nombre del Comercio</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>Categoría</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>WhatsApp de contacto</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field full">
+        <label>Beneficio / Descuento que ofrecés a los huéspedes</label>
+        <div class="value" style="min-height:52px;">&nbsp;</div>
+      </div>
+      <div class="form-field full">
+        <label>Foto del local o producto (enviá por WhatsApp al hotel)</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>Instagram (URL del perfil)</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>Facebook (URL del perfil)</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field full">
+        <label>Link Google Maps de tu local</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>PIN de Descuento elegido (4 dígitos)</label>
+        <div class="value">&nbsp;</div>
+      </div>
+      <div class="form-field">
+        <label>Contraseña de acceso a tu panel</label>
+        <div class="value">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VENTAJAS -->
+  <div class="card" style="background:linear-gradient(135deg,#faf4e8,#f0e8cc);border-color:#c9a84c;">
+    <div class="section-title">¿Por qué unirte?</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="num">0$</div>
+        <div class="lbl">Costo para el comercio</div>
+      </div>
+      <div class="stat">
+        <div class="num">100%</div>
+        <div class="lbl">Digital, sin papeles</div>
+      </div>
+      <div class="stat">
+        <div class="num">24/7</div>
+        <div class="lbl">Visible para los huéspedes</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.8rem;color:#4a3728;">
+        <span style="color:#1a5c4a;font-weight:700;">✓</span> Sin costo de adhesión ni comisiones
+      </div>
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.8rem;color:#4a3728;">
+        <span style="color:#1a5c4a;font-weight:700;">✓</span> Vos controlás tu PIN y tu contraseña
+      </div>
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.8rem;color:#4a3728;">
+        <span style="color:#1a5c4a;font-weight:700;">✓</span> Editás tu beneficio y promoción cuando quieras
+      </div>
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.8rem;color:#4a3728;">
+        <span style="color:#1a5c4a;font-weight:700;">✓</span> Estadísticas de cuántos huéspedes te visitaron
+      </div>
+      <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.8rem;color:#4a3728;">
+        <span style="color:#1a5c4a;font-weight:700;">✓</span> Tu WhatsApp, Instagram y Facebook en un solo lugar
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER / CONTACTO -->
+  <div class="footer">
+    <div style="color:#e8c97a;font-size:0.6rem;letter-spacing:0.2em;font-weight:600;">ACCEDÉ A LA APP EN</div>
+    <div class="url">pulso-dun.vercel.app</div>
+    <div class="divider"></div>
+    <p>Para más información o para cargarte en la app,<br/>contactate con la recepción de Zelena Voda Apart Hotel.<br/><strong style="color:#c9a84c;">Villa Gesell · Temporada 2026</strong></p>
+    <div class="firma-line" style="width:100%;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(201,168,76,0.2);">
+      <div class="firma-field"><label>Firma del comerciante · Fecha</label></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
