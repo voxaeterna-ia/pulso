@@ -60,15 +60,17 @@ router.get('/', (req, res) => {
         'SELECT ean, nombre, marca, cadena, precio FROM productos WHERE ean = ? ORDER BY cadena'
       ).all(ean.trim());
     } else {
-      const termino = '%' + q.trim().toLowerCase() + '%';
+      const palabras = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const condiciones = palabras.map(() => 'nombre_lower LIKE ?').join(' AND ');
+      const params = palabras.map(p => '%' + p + '%');
       rows = db.prepare(
         `SELECT ean, nombre, marca, cadena, MIN(precio) as precio
          FROM productos
-         WHERE nombre_lower LIKE ?
+         WHERE ${condiciones}
          GROUP BY cadena, COALESCE(ean, nombre_lower)
          ORDER BY nombre_lower, cadena
          LIMIT 300`
-      ).all(termino);
+      ).all(...params);
     }
 
     db.close();
