@@ -67,6 +67,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => ls("zv_currentUser") || null);
   const [screen, setScreen]     = useState("landing");
   const [pendingComercio, setPendingComercio] = useState(null);
+  const [voucherMode, setVoucherMode] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [comercioActivo, setComercioActivo] = useState(null);
   const [toast, setToast]       = useState("");
@@ -262,7 +263,7 @@ export default function App() {
           {comercios.map(comercio => {
             const cnt = usos.filter(u => u.comercioId===comercio.id && u.huespedId===h.id).length;
             return (
-              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setScreen("detail"); }}
+              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setVoucherMode(false); setScreen("detail"); }}
                 style={{background:"white",borderRadius:12,border:"1px solid #ede5d4",display:"flex",alignItems:"stretch",overflow:"hidden",boxShadow:"0 1px 5px rgba(0,0,0,0.06)",cursor:"pointer"}}>
                 <div style={{width:60,background:comercio.color||"#1a5c4a",display:"flex",alignItems:"center",justifyContent:"center",padding:"0.6rem 0.3rem",flexShrink:0}}>
                   <span style={{fontSize:"1.6rem"}}>{comercio.icon||"🏪"}</span>
@@ -308,13 +309,20 @@ export default function App() {
     const icon  = c.icon||"🏪";
     const cnt   = usos.filter(u => u.comercioId===c.id && u.huespedId===huesped?.id).length;
     const waLink = c.whatsapp ? `https://wa.me/${c.whatsapp.replace(/\D/g,'')}` : null;
+    const textoMostrado = voucherMode && c.voucherTexto ? c.voucherTexto : c.beneficio;
+    const backScreen = voucherMode ? "vouchers" : "passport";
     return (
       <div className="fade" style={{background:"#f5f0e8",minHeight:"100vh",paddingBottom:"2rem",overflowY:"auto"}}>
         <div style={{background:"#0d2340",padding:"1rem 1.4rem",display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={() => setScreen("passport")} style={{background:"none",border:"none",color:"#c9a84c",cursor:"pointer",fontSize:"1.1rem"}}>⟵</button>
-          <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>{(c.cat||"").toUpperCase()}</span>
+          <button onClick={() => setScreen(backScreen)} style={{background:"none",border:"none",color:"#c9a84c",cursor:"pointer",fontSize:"1.1rem"}}>⟵</button>
+          <span style={{color:"#c9a84c",fontSize:"0.85rem",letterSpacing:"0.1em",fontWeight:700,flex:1,textAlign:"center"}}>{voucherMode ? "✨ VOUCHER DESTACADO" : (c.cat||"").toUpperCase()}</span>
           <div style={{width:24}}/>
         </div>
+        {voucherMode && (
+          <div style={{background:"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.3rem 1rem",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:"0.58rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.14em",color:"#0d2340",textTransform:"uppercase"}}>✨ Promoción especial para huéspedes</span>
+          </div>
+        )}
         {c.foto
           ? <div style={{width:"100%",maxHeight:220,overflow:"hidden",background:"#000",display:"flex",alignItems:"center",justifyContent:"center"}}>
               <img src={c.foto} style={{width:"100%",height:"auto",maxHeight:220,objectFit:"contain",display:"block"}} alt="foto"/>
@@ -328,9 +336,9 @@ export default function App() {
             <div style={{fontSize:"1.5rem",color:"#0d2340",fontStyle:"italic",lineHeight:1.1,marginBottom:3}}>{c.name}</div>
             <div style={{fontSize:"0.78rem",color:"#4a3728",fontFamily:"sans-serif"}}>{c.cat}</div>
           </div>
-          <div style={{background:"#0d2340",borderRadius:12,padding:"1.1rem"}}>
-            <div style={{fontSize:"0.55rem",letterSpacing:"0.15em",color:"#e8c97a",fontFamily:"sans-serif",fontWeight:700,marginBottom:"0.5rem"}}>PRESENTANDO ESTE PASAPORTE OBTENÉS:</div>
-            <div style={{color:"white",fontSize:"0.88rem",fontFamily:"sans-serif",lineHeight:1.6}}>{c.beneficio}</div>
+          <div style={{background:"#0d2340",borderRadius:12,padding:"1.1rem",border:voucherMode?"1.5px solid #c9a84c":"none"}}>
+            <div style={{fontSize:"0.55rem",letterSpacing:"0.15em",color:"#e8c97a",fontFamily:"sans-serif",fontWeight:700,marginBottom:"0.5rem"}}>{voucherMode ? "✨ TU VOUCHER DESTACADO:" : "PRESENTANDO ESTE PASAPORTE OBTENÉS:"}</div>
+            <div style={{color:"white",fontSize:"0.88rem",fontFamily:"sans-serif",lineHeight:1.6}}>{textoMostrado}</div>
             {c.maps && (
               <div style={{marginTop:"0.7rem",paddingTop:"0.6rem",borderTop:"1px solid rgba(255,255,255,0.1)"}}>
                 <a href={c.maps} target="_blank" rel="noreferrer" style={{fontSize:"0.65rem",color:"#5ab4ff",fontFamily:"sans-serif",fontWeight:700,textDecoration:"none"}}>📍 Ver en Google Maps →</a>
@@ -398,12 +406,13 @@ export default function App() {
     return (
       <div className="fade" style={{background:"#0d2340",minHeight:"100vh",padding:"2rem 1.5rem",display:"flex",flexDirection:"column",alignItems:"center",gap:"1.2rem"}}>
         <div style={{width:"100%"}}><button onClick={() => setScreen("detail")} style={{background:"none",border:"none",color:"#c9a84c",cursor:"pointer",fontSize:"1.1rem"}}>⟵</button></div>
+        {voucherMode && <div style={{background:"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.25rem 1rem",width:"100%",textAlign:"center"}}><span style={{fontSize:"0.58rem",fontFamily:"sans-serif",fontWeight:700,letterSpacing:"0.12em",color:"#0d2340"}}>✨ VOUCHER DESTACADO</span></div>}
         {!confirmed ? <>
           <div style={{color:"#c9a84c",fontSize:"0.65rem",letterSpacing:"0.22em",fontFamily:"sans-serif",fontWeight:700,textAlign:"center"}}>USAR DESCUENTO EN</div>
           <div style={{background:color,width:80,height:80,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"2.5rem",border:"3px solid #c9a84c"}}>{icon}</div>
           <div style={{textAlign:"center"}}>
             <div style={{color:"#c9a84c",fontSize:"1.1rem",fontStyle:"italic"}}>{c.name}</div>
-            <div style={{color:"#e8c97a",fontSize:"0.72rem",fontFamily:"sans-serif",marginTop:4,maxWidth:260,lineHeight:1.4}}>{c.beneficio}</div>
+            <div style={{color:"#e8c97a",fontSize:"0.72rem",fontFamily:"sans-serif",marginTop:4,maxWidth:260,lineHeight:1.4}}>{voucherMode && c.voucherTexto ? c.voucherTexto : c.beneficio}</div>
           </div>
           <div style={{color:"#e8c97a",fontSize:"0.72rem",fontFamily:"sans-serif",textAlign:"center",marginTop:4}}>
             Pedile al comerciante su <strong style={{color:"#c9a84c"}}>PIN de descuento:</strong>
@@ -922,7 +931,7 @@ export default function App() {
           {dest.map(comercio => {
             const cnt = usos.filter(u => u.comercioId===comercio.id && u.huespedId===h.id).length;
             return (
-              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setScreen("detail"); }}
+              <div key={comercio.id} onClick={() => { setPendingComercio(comercio); setVoucherMode(true); setScreen("detail"); }}
                 style={{background:"white",borderRadius:14,border:"2px solid #c9a84c",overflow:"hidden",boxShadow:"0 2px 10px rgba(201,168,76,0.15)",cursor:"pointer"}}>
                 <div style={{background:"linear-gradient(90deg,#c9a84c,#e8c97a)",padding:"0.35rem 0.9rem",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:"0.7rem"}}>✨</span>
