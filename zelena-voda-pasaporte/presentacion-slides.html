@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Pasaporte de Beneficios — Zelena Voda</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#0d2340;font-family:'Inter',sans-serif;}
+
+/* SLIDER */
+.slider{width:100%;height:100vh;display:flex;transition:transform .45s cubic-bezier(.4,0,.2,1);}
+.slide{min-width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.8rem;overflow:hidden;position:relative;}
+
+/* NAV DOTS */
+.dots{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(201,168,76,0.3);cursor:pointer;transition:all .3s;}
+.dot.active{background:#c9a84c;width:22px;border-radius:4px;}
+
+/* ARROWS */
+.arrow{position:fixed;top:50%;transform:translateY(-50%);background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:#c9a84c;font-size:1.2rem;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;transition:all .2s;user-select:none;}
+.arrow:hover{background:rgba(201,168,76,0.3);}
+.arrow-left{left:10px;}
+.arrow-right{right:10px;}
+
+/* SLIDE COUNTER */
+.counter{position:fixed;top:16px;right:16px;color:rgba(201,168,76,0.5);font-size:0.65rem;font-weight:600;letter-spacing:0.15em;z-index:100;}
+
+/* SHARED ELEMENTS */
+.logo-circle{width:80px;height:80px;border:2px solid #c9a84c;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;}
+.gold{color:#c9a84c;}
+.gold-light{color:#e8c97a;}
+.white{color:white;}
+.divider{width:50px;height:1.5px;background:#c9a84c;margin:0.8rem auto;}
+.tag{background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:#e8c97a;font-size:0.6rem;font-weight:700;letter-spacing:0.18em;padding:4px 14px;border-radius:20px;text-transform:uppercase;}
+
+/* ── SLIDE 1: PORTADA ── */
+.s1{background:linear-gradient(160deg,#0a1d36 0%,#0d2340 50%,#0f2a4a 100%);}
+.s1::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 30%,rgba(201,168,76,0.08) 0%,transparent 60%);}
+.s1 h1{font-family:'Playfair Display',serif;font-size:2.8rem;color:#c9a84c;font-weight:700;letter-spacing:0.06em;text-align:center;line-height:1.05;}
+.s1 .subtitle{font-size:0.65rem;letter-spacing:0.3em;color:#e8c97a;font-weight:600;text-align:center;margin-top:0.3rem;}
+.s1 .edition{font-size:0.62rem;letter-spacing:0.2em;color:rgba(232,201,122,0.5);margin-top:1.2rem;text-align:center;}
+.s1 .tagline{color:rgba(255,255,255,0.7);font-size:0.85rem;text-align:center;font-style:italic;max-width:300px;line-height:1.7;margin-top:0.5rem;}
+
+/* ── SLIDE 2: EL PROBLEMA ── */
+.s2{background:#f5f0e8;}
+.s2 .big-emoji{font-size:4rem;margin-bottom:1rem;}
+.s2 h2{font-family:'Playfair Display',serif;font-size:1.6rem;color:#0d2340;font-weight:700;text-align:center;line-height:1.2;margin-bottom:0.5rem;}
+.s2 .desc{font-size:0.82rem;color:#4a3728;text-align:center;line-height:1.7;max-width:320px;}
+.pain-list{display:flex;flex-direction:column;gap:0.7rem;margin-top:1.2rem;width:100%;max-width:340px;}
+.pain-item{background:white;border-radius:12px;border-left:3px solid #c9a84c;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.8rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.pain-item .pi-icon{font-size:1.3rem;flex-shrink:0;}
+.pain-item p{font-size:0.78rem;color:#333;line-height:1.4;}
+
+/* ── SLIDE 3: LA SOLUCIÓN ── */
+.s3{background:linear-gradient(160deg,#0d2340,#1a3558);}
+.s3 h2{font-family:'Playfair Display',serif;font-size:1.7rem;color:#c9a84c;text-align:center;font-weight:700;line-height:1.2;margin-bottom:0.3rem;}
+.s3 .desc{color:rgba(232,201,122,0.75);font-size:0.8rem;text-align:center;line-height:1.6;max-width:300px;margin-bottom:1.2rem;}
+.sol-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;width:100%;max-width:360px;}
+.sol-card{background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.2);border-radius:14px;padding:1rem;text-align:center;}
+.sol-card .sc-icon{font-size:1.8rem;margin-bottom:0.5rem;}
+.sol-card h4{color:#c9a84c;font-size:0.78rem;font-weight:700;margin-bottom:3px;}
+.sol-card p{color:rgba(255,255,255,0.6);font-size:0.65rem;line-height:1.4;}
+
+/* ── SLIDE 4: CÓMO FUNCIONA ── */
+.s4{background:#f5f0e8;}
+.s4 h2{font-family:'Playfair Display',serif;font-size:1.5rem;color:#0d2340;text-align:center;font-weight:700;margin-bottom:1.2rem;}
+.steps{display:flex;flex-direction:column;gap:0.8rem;width:100%;max-width:360px;}
+.step-row{display:flex;align-items:flex-start;gap:0.9rem;}
+.step-num{width:36px;height:36px;background:#0d2340;color:#c9a84c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.88rem;font-weight:700;flex-shrink:0;font-family:'Playfair Display',serif;}
+.step-body h4{font-size:0.85rem;font-weight:700;color:#0d2340;margin-bottom:2px;}
+.step-body p{font-size:0.72rem;color:#666;line-height:1.4;}
+.step-connector{width:1px;height:12px;background:#c9a84c;margin-left:17px;opacity:0.4;}
+
+/* ── SLIDE 5: EL PIN ── */
+.s5{background:linear-gradient(160deg,#0d2340,#1a3558);}
+.s5 h2{font-family:'Playfair Display',serif;font-size:1.5rem;color:#c9a84c;text-align:center;font-weight:700;margin-bottom:0.4rem;}
+.s5 .desc{color:rgba(232,201,122,0.7);font-size:0.78rem;text-align:center;line-height:1.6;max-width:300px;margin-bottom:1.5rem;}
+.pin-display{display:flex;gap:0.7rem;margin-bottom:1.5rem;}
+.pin-box-d{width:58px;height:68px;background:rgba(255,255,255,0.07);border:2px solid #c9a84c;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#c9a84c;font-family:'Playfair Display',serif;}
+.pin-features{display:flex;flex-direction:column;gap:0.6rem;width:100%;max-width:300px;}
+.pin-feat{display:flex;align-items:center;gap:0.8rem;}
+.pin-feat .pf-dot{width:8px;height:8px;background:#c9a84c;border-radius:50%;flex-shrink:0;}
+.pin-feat p{color:rgba(255,255,255,0.8);font-size:0.78rem;line-height:1.4;}
+
+/* ── SLIDE 6: TU PANEL ── */
+.s6{background:#f5f0e8;}
+.s6 h2{font-family:'Playfair Display',serif;font-size:1.5rem;color:#0d2340;text-align:center;font-weight:700;margin-bottom:1.2rem;}
+.panel-mockup{background:#0d2340;border-radius:20px;border:1.5px solid #c9a84c;padding:1.2rem;width:100%;max-width:320px;margin-bottom:1rem;}
+.pm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.7rem;border-bottom:1px solid rgba(201,168,76,0.2);}
+.pm-title{color:#c9a84c;font-size:0.78rem;font-weight:700;letter-spacing:0.1em;}
+.pm-badge{background:rgba(201,168,76,0.15);color:#e8c97a;font-size:0.6rem;padding:3px 8px;border-radius:10px;}
+.pm-stat{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(201,168,76,0.08);}
+.pm-stat:last-child{border-bottom:none;}
+.pm-stat .pms-label{color:rgba(255,255,255,0.6);font-size:0.7rem;}
+.pm-stat .pms-val{color:#c9a84c;font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif;}
+.panel-desc{display:flex;flex-direction:column;gap:0.5rem;width:100%;max-width:320px;}
+.panel-feat{display:flex;align-items:center;gap:0.7rem;font-size:0.75rem;color:#4a3728;}
+.panel-feat .check{color:#1a5c4a;font-weight:700;font-size:0.9rem;}
+
+/* ── SLIDE 7: VOUCHERS ── */
+.s7{background:linear-gradient(160deg,#0d2340,#1a3558);}
+.s7 h2{font-family:'Playfair Display',serif;font-size:1.5rem;color:#c9a84c;text-align:center;font-weight:700;margin-bottom:0.4rem;}
+.s7 .desc{color:rgba(232,201,122,0.7);font-size:0.78rem;text-align:center;line-height:1.6;max-width:300px;margin-bottom:1.2rem;}
+.voucher-card{background:white;border-radius:16px;border:2px solid #c9a84c;overflow:hidden;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(201,168,76,0.2);}
+.vc-banner{background:linear-gradient(90deg,#c9a84c,#e8c97a);padding:0.5rem 1rem;display:flex;align-items:center;justify-content:space-between;}
+.vc-banner span{font-size:0.62rem;font-weight:700;letter-spacing:0.14em;color:#0d2340;text-transform:uppercase;}
+.vc-banner .vc-badge{background:rgba(0,0,0,0.15);color:#0d2340;font-size:0.55rem;font-weight:700;padding:2px 8px;border-radius:10px;}
+.vc-body{display:flex;align-items:stretch;}
+.vc-icon{width:64px;background:#1a5c4a;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;}
+.vc-info{flex:1;padding:0.8rem;}
+.vc-info .cat{font-size:0.5rem;color:#888;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
+.vc-info .name{font-size:1rem;color:#0d2340;font-style:italic;font-family:'Playfair Display',serif;margin:2px 0;}
+.vc-info .texto{font-size:0.68rem;color:#555;line-height:1.4;}
+.voucher-explain{margin-top:1rem;display:flex;flex-direction:column;gap:0.5rem;width:100%;max-width:320px;}
+.ve-item{display:flex;align-items:center;gap:0.7rem;}
+.ve-item .ve-dot{width:6px;height:6px;background:#c9a84c;border-radius:50%;flex-shrink:0;}
+.ve-item p{color:rgba(255,255,255,0.75);font-size:0.73rem;}
+
+/* ── SLIDE 8: SIN COSTO ── */
+.s8{background:#f5f0e8;}
+.s8 h2{font-family:'Playfair Display',serif;font-size:1.6rem;color:#0d2340;text-align:center;font-weight:700;margin-bottom:0.3rem;}
+.s8 .desc{font-size:0.78rem;color:#666;text-align:center;line-height:1.6;max-width:300px;margin-bottom:1.2rem;}
+.free-big{font-family:'Playfair Display',serif;font-size:5rem;color:#c9a84c;font-weight:700;line-height:1;text-align:center;margin:0.5rem 0;}
+.free-sub{font-size:0.65rem;letter-spacing:0.2em;color:#888;text-align:center;font-weight:700;margin-bottom:1.2rem;}
+.benefit-chips{display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;max-width:320px;}
+.chip{background:#0d2340;color:#e8c97a;font-size:0.65rem;font-weight:600;padding:6px 14px;border-radius:20px;}
+
+/* ── SLIDE 9: TUS DATOS ── */
+.s9{background:linear-gradient(160deg,#0d2340,#1a3558);}
+.s9 h2{font-family:'Playfair Display',serif;font-size:1.4rem;color:#c9a84c;text-align:center;font-weight:700;margin-bottom:1rem;}
+.data-list{display:flex;flex-direction:column;gap:0.55rem;width:100%;max-width:340px;}
+.data-item{background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:0.65rem 0.9rem;display:flex;align-items:center;gap:0.8rem;}
+.data-item .di-icon{font-size:1.1rem;flex-shrink:0;}
+.data-item .di-label{color:#e8c97a;font-size:0.7rem;font-weight:600;}
+.data-item .di-hint{color:rgba(255,255,255,0.35);font-size:0.6rem;line-height:1.3;}
+
+/* ── SLIDE 10: CIERRE ── */
+.s10{background:linear-gradient(160deg,#0a1d36 0%,#0d2340 60%,#0f2a4a 100%);}
+.s10::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 70%,rgba(201,168,76,0.07) 0%,transparent 60%);}
+.s10 h2{font-family:'Playfair Display',serif;font-size:1.8rem;color:#c9a84c;text-align:center;font-weight:700;line-height:1.2;margin-bottom:0.5rem;}
+.s10 .desc{color:rgba(232,201,122,0.75);font-size:0.82rem;text-align:center;line-height:1.7;max-width:300px;margin-bottom:1.5rem;}
+.url-box{background:rgba(201,168,76,0.1);border:1.5px solid #c9a84c;border-radius:14px;padding:1rem 1.5rem;text-align:center;}
+.url-box .url-label{font-size:0.55rem;color:rgba(232,201,122,0.6);font-weight:700;letter-spacing:0.2em;margin-bottom:4px;}
+.url-box .url-text{font-family:'Playfair Display',serif;font-size:1.1rem;color:#c9a84c;font-weight:700;}
+.contact-info{margin-top:1.2rem;text-align:center;}
+.contact-info p{color:rgba(255,255,255,0.5);font-size:0.7rem;line-height:1.8;}
+.contact-info strong{color:#e8c97a;}
+</style>
+</head>
+<body>
+
+<div class="counter" id="counter">1 / 10</div>
+<div class="arrow arrow-left" onclick="prev()">‹</div>
+<div class="arrow arrow-right" onclick="next()">›</div>
+<div class="dots" id="dots"></div>
+
+<div class="slider" id="slider">
+
+  <!-- SLIDE 1: PORTADA -->
+  <div class="slide s1">
+    <div class="logo-circle">
+      <svg width="48" height="48" viewBox="0 0 52 52" fill="none">
+        <path d="M26 8 L20 20 L26 18 L32 20 Z" fill="#c9a84c"/>
+        <path d="M18 14 L13 24 L18 22 L23 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M34 14 L29 24 L34 22 L39 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M8 30 Q15 26 26 28 Q37 26 44 30 Q37 34 26 32 Q15 34 8 30Z" fill="#c9a84c" opacity="0.5"/>
+        <path d="M6 36 Q15 31 26 33 Q37 31 46 36 Q37 41 26 39 Q15 41 6 36Z" fill="#c9a84c" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="subtitle" style="font-size:0.6rem;letter-spacing:0.28em;color:#e8c97a;font-weight:600;text-align:center;">ZELENA VODA · APART HOTEL</div>
+    <div class="divider"></div>
+    <h1>PASAPORTE<br/>DE BENEFICIOS</h1>
+    <div class="divider"></div>
+    <p class="tagline">La app exclusiva que conecta a nuestros huéspedes con los mejores comercios de Villa Gesell</p>
+    <div class="edition">TEMPORADA 2026</div>
+  </div>
+
+  <!-- SLIDE 2: EL CONTEXTO -->
+  <div class="slide s2">
+    <div class="big-emoji">🏖️</div>
+    <div class="tag" style="margin-bottom:0.8rem;">LA OPORTUNIDAD</div>
+    <h2>Turistas que quieren<br/>gastar, pero no saben<br/>dónde ir</h2>
+    <div class="pain-list">
+      <div class="pain-item">
+        <div class="pi-icon">🤷</div>
+        <p>Los huéspedes llegan a Villa Gesell sin conocer los comercios de la zona</p>
+      </div>
+      <div class="pain-item">
+        <div class="pi-icon">💸</div>
+        <p>Tienen presupuesto para gastar pero no saben qué los espera en cada lugar</p>
+      </div>
+      <div class="pain-item">
+        <div class="pi-icon">📍</div>
+        <p>Los comercios locales pierden clientes por falta de visibilidad en temporada</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: LA SOLUCIÓN -->
+  <div class="slide s3">
+    <div class="tag gold-light" style="margin-bottom:0.8rem;">NUESTRA SOLUCIÓN</div>
+    <h2>Una app que<br/>te trae clientes<br/>garantizados</h2>
+    <p class="desc">El Pasaporte de Beneficios conecta directamente a los huéspedes de Zelena Voda con tu comercio desde el primer día de estadía.</p>
+    <div class="sol-grid">
+      <div class="sol-card">
+        <div class="sc-icon">📱</div>
+        <h4>App en el celular</h4>
+        <p>El huésped la instala al hacer check-in</p>
+      </div>
+      <div class="sol-card">
+        <div class="sc-icon">🎯</div>
+        <h4>Clientes directos</h4>
+        <p>Tu comercio visible para todos los huéspedes</p>
+      </div>
+      <div class="sol-card">
+        <div class="sc-icon">🔑</div>
+        <h4>PIN simple</h4>
+        <p>Sin papeles, sin complicaciones</p>
+      </div>
+      <div class="sol-card">
+        <div class="sc-icon">📊</div>
+        <h4>Tu panel propio</h4>
+        <p>Estadísticas de tus descuentos</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: CÓMO FUNCIONA -->
+  <div class="slide s4">
+    <div class="tag" style="margin-bottom:0.8rem;">PASO A PASO</div>
+    <h2>¿Cómo funciona?</h2>
+    <div class="steps">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>El huésped crea su Pasaporte Digital</h4>
+          <p>Al llegar al hotel activa la app y ve todos los comercios adheridos con sus beneficios.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Ve tu comercio y decide visitarte</h4>
+          <p>Tu nombre, foto, beneficio y contacto están siempre visibles para todos los huéspedes.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Consume y le aplicás el descuento</h4>
+          <p>El huésped realiza su consumo. Vos le aplicás el beneficio acordado.</p>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Le das tu PIN de 4 dígitos</h4>
+          <p>Lo ingresa en la app y queda registrado. Rápido, sin papeles, en segundos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: EL PIN -->
+  <div class="slide s5">
+    <div class="tag" style="margin-bottom:0.8rem;">EL SISTEMA</div>
+    <h2>Tu PIN secreto<br/>de descuento</h2>
+    <p class="desc">Cada comercio tiene su propio PIN de 4 dígitos que solo vos conocés.</p>
+    <div class="pin-display">
+      <div class="pin-box-d">·</div>
+      <div class="pin-box-d">·</div>
+      <div class="pin-box-d">·</div>
+      <div class="pin-box-d">·</div>
+    </div>
+    <div class="pin-features">
+      <div class="pin-feat"><div class="pf-dot"></div><p>Vos elegís los 4 dígitos de tu PIN</p></div>
+      <div class="pin-feat"><div class="pf-dot"></div><p>Solo se lo das al huésped cuando consume</p></div>
+      <div class="pin-feat"><div class="pf-dot"></div><p>Podés cambiarlo cuando quieras desde tu panel</p></div>
+      <div class="pin-feat"><div class="pf-dot"></div><p>También tenés tu contraseña para acceder al panel</p></div>
+      <div class="pin-feat"><div class="pf-dot"></div><p>Ningún otro comercio ve tu PIN</p></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: TU PANEL -->
+  <div class="slide s6">
+    <div class="tag" style="margin-bottom:0.8rem;">TU PANEL</div>
+    <h2>Tu panel de<br/>comerciante</h2>
+    <div class="panel-mockup">
+      <div class="pm-header">
+        <span class="pm-title">MI COMERCIO</span>
+        <span class="pm-badge">🏪 Panel</span>
+      </div>
+      <div class="pm-stat">
+        <span class="pms-label">Descuentos otorgados</span>
+        <span class="pms-val">12</span>
+      </div>
+      <div class="pm-stat">
+        <span class="pms-label">Huéspedes únicos</span>
+        <span class="pms-val">9</span>
+      </div>
+      <div class="pm-stat">
+        <span class="pms-label">Último uso</span>
+        <span class="pms-val" style="font-size:0.82rem;color:#e8c97a;">Hoy 14:32</span>
+      </div>
+    </div>
+    <div class="panel-desc">
+      <div class="panel-feat"><span class="check">✓</span> Historial de cada huésped que usó el descuento</div>
+      <div class="panel-feat"><span class="check">✓</span> Editás tu beneficio y promoción en cualquier momento</div>
+      <div class="panel-feat"><span class="check">✓</span> Cambiás tu PIN y tu contraseña cuando querés</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: VOUCHERS DESTACADOS -->
+  <div class="slide s7">
+    <div class="tag" style="margin-bottom:0.8rem;">EXTRA</div>
+    <h2>✨ Vouchers<br/>Destacados</h2>
+    <p class="desc">El hotel puede destacar tu promoción especial en una sección exclusiva de la app, visible para todos los huéspedes apenas abren su pasaporte.</p>
+    <div class="voucher-card">
+      <div class="vc-banner">
+        <span>✨ Voucher Destacado</span>
+        <span class="vc-badge">3 disponibles</span>
+      </div>
+      <div class="vc-body">
+        <div class="vc-icon">🍽️</div>
+        <div class="vc-info">
+          <div class="cat">Gastronomía</div>
+          <div class="name">Tu Comercio</div>
+          <div class="texto">Promoción especial con límite de cupos durante la temporada</div>
+        </div>
+      </div>
+    </div>
+    <div class="voucher-explain">
+      <div class="ve-item"><div class="ve-dot"></div><p>Aparece en la pantalla principal del pasaporte</p></div>
+      <div class="ve-item"><div class="ve-dot"></div><p>Podés poner límite de cantidad de vouchers</p></div>
+      <div class="ve-item"><div class="ve-dot"></div><p>Cuando se agotan, se marca automáticamente</p></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: SIN COSTO -->
+  <div class="slide s8">
+    <div class="tag" style="margin-bottom:0.5rem;">LO MEJOR</div>
+    <h2>Para el comercio<br/>es completamente</h2>
+    <div class="free-big">$0</div>
+    <div class="free-sub">SIN COSTO · SIN COMISIONES · SIN CONTRATOS</div>
+    <div class="benefit-chips">
+      <div class="chip">✓ Gratis para adherirse</div>
+      <div class="chip">✓ Sin comisiones</div>
+      <div class="chip">✓ Sin papeles</div>
+      <div class="chip">✓ Sin contratos</div>
+      <div class="chip">✓ Clientes directos</div>
+      <div class="chip">✓ Panel propio</div>
+      <div class="chip">✓ Estadísticas reales</div>
+      <div class="chip">✓ Tu beneficio, tus reglas</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: DATOS NECESARIOS -->
+  <div class="slide s9">
+    <div class="tag" style="margin-bottom:0.8rem;">PARA EMPEZAR</div>
+    <h2>Solo necesitamos<br/>estos datos tuyos</h2>
+    <div class="data-list">
+      <div class="data-item"><div class="di-icon">🏪</div><div><div class="di-label">Nombre del comercio y categoría</div></div></div>
+      <div class="data-item"><div class="di-icon">🎁</div><div><div class="di-label">Beneficio o descuento que ofrecés</div><div class="di-hint">Ej: 10% de descuento, 2x1 en bebidas, etc.</div></div></div>
+      <div class="data-item"><div class="di-icon">💬</div><div><div class="di-label">WhatsApp, Instagram, Facebook</div><div class="di-hint">Para que los huéspedes te contacten</div></div></div>
+      <div class="data-item"><div class="di-icon">📍</div><div><div class="di-label">Link de Google Maps de tu local</div></div></div>
+      <div class="data-item"><div class="di-icon">📸</div><div><div class="di-label">Una foto de tu local o producto</div></div></div>
+      <div class="data-item"><div class="di-icon">🔑</div><div><div class="di-label">Tu PIN de 4 dígitos y contraseña</div><div class="di-hint">Los elegís vos, son privados</div></div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: CIERRE -->
+  <div class="slide s10">
+    <div class="logo-circle">
+      <svg width="48" height="48" viewBox="0 0 52 52" fill="none">
+        <path d="M26 8 L20 20 L26 18 L32 20 Z" fill="#c9a84c"/>
+        <path d="M18 14 L13 24 L18 22 L23 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M34 14 L29 24 L34 22 L39 24 Z" fill="#c9a84c" opacity="0.8"/>
+        <path d="M8 30 Q15 26 26 28 Q37 26 44 30 Q37 34 26 32 Q15 34 8 30Z" fill="#c9a84c" opacity="0.5"/>
+        <path d="M6 36 Q15 31 26 33 Q37 31 46 36 Q37 41 26 39 Q15 41 6 36Z" fill="#c9a84c" opacity="0.35"/>
+      </svg>
+    </div>
+    <h2>¿Te sumás al<br/>Pasaporte de<br/>Beneficios?</h2>
+    <p class="desc">Formá parte de la red de comercios adheridos y llegá a cada huésped de Zelena Voda durante toda la temporada.</p>
+    <div class="url-box">
+      <div class="url-label">PROBÁ LA APP EN</div>
+      <div class="url-text">pulso-dun.vercel.app</div>
+    </div>
+    <div class="contact-info">
+      <p>Contacto y adhesión:<br/><strong>Recepción Zelena Voda Apart Hotel</strong><br/>Villa Gesell · Temporada 2026</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const total = 10;
+  let current = 0;
+  const slider = document.getElementById('slider');
+  const dotsEl = document.getElementById('dots');
+  const counterEl = document.getElementById('counter');
+
+  // Create dots
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+
+  function goTo(n) {
+    current = Math.max(0, Math.min(total - 1, n));
+    slider.style.transform = `translateX(-${current * 100}%)`;
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    counterEl.textContent = `${current + 1} / ${total}`;
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Swipe support
+  let startX = 0;
+  slider.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+  slider.addEventListener('touchend', e => {
+    const diff = startX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) diff > 0 ? next() : prev();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
+  });
+</script>
+</body>
+</html>
