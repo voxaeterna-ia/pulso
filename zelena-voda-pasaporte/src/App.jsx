@@ -186,13 +186,14 @@ export default function App() {
 
   // ── REGISTER ───────────────────────────────────────────────────────────────
   function RegisterScreen() {
-    const [form, setForm] = useState({nombre:"",apellido:"",fnac:"",desde:"",hasta:""});
+    const [form, setForm] = useState({nombre:"",apellido:"",mail:"",fnac:"",desde:"",hasta:""});
     const [err, setErr]   = useState("");
     const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
     const submit = async () => {
-      if (!form.nombre||!form.apellido||!form.fnac||!form.desde||!form.hasta) return setErr("Completá todos los campos.");
+      if (!form.nombre||!form.apellido||!form.mail||!form.fnac||!form.desde||!form.hasta) return setErr("Completá todos los campos.");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.mail)) return setErr("Ingresá un email válido.");
       if (form.desde > form.hasta) return setErr("Las fechas de estadía no son válidas.");
-      const h = {id:uid(),nombre:form.nombre,apellido:form.apellido,fnac:form.fnac,desde:form.desde,hasta:form.hasta,creado:new Date().toISOString().slice(0,10)};
+      const h = {id:uid(),nombre:form.nombre,apellido:form.apellido,mail:form.mail,fnac:form.fnac,desde:form.desde,hasta:form.hasta,creado:new Date().toISOString().slice(0,10),activo:true};
       await fsHuesped(h); setCurrentUser(h.id); setScreen("passport");
     };
     return (
@@ -203,6 +204,7 @@ export default function App() {
           {[["nombre","Nombre"],["apellido","Apellido"]].map(([k,l]) => (
             <div key={k}><div style={st.rLabel}>{l}</div><input value={form[k]} onChange={set(k)} placeholder={l} style={st.rInput}/></div>
           ))}
+          <div><div style={st.rLabel}>Email</div><input type="email" value={form.mail} onChange={set("mail")} placeholder="tu@email.com" inputMode="email" style={st.rInput}/></div>
           <div><div style={st.rLabel}>Fecha de Nacimiento</div><input type="date" value={form.fnac} onChange={set("fnac")} style={st.rInput}/></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
             <div><div style={st.rLabel}>Check-in</div><input type="date" value={form.desde} onChange={set("desde")} style={st.rInput}/></div>
@@ -219,6 +221,14 @@ export default function App() {
   // ── PASSPORT ───────────────────────────────────────────────────────────────
   function PassportScreen() {
     const h = huesped;
+    if (h.activo === false) return (
+      <div className="fade" style={{background:"#0d2340",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem",gap:"1.2rem",textAlign:"center"}}>
+        <div style={{fontSize:"3rem"}}>🔒</div>
+        <div style={{color:"#c9a84c",fontSize:"1.2rem",fontFamily:"'Playfair Display',serif",fontWeight:700}}>Pasaporte Desactivado</div>
+        <div style={{color:"rgba(232,201,122,0.7)",fontSize:"0.82rem",fontFamily:"sans-serif",lineHeight:1.7,maxWidth:280}}>Tu pasaporte fue desactivado por el hotel. Para más información acercate a recepción.</div>
+        <div style={{color:"rgba(201,168,76,0.35)",fontSize:"0.6rem",fontFamily:"sans-serif",letterSpacing:"0.15em",marginTop:"1rem"}}>{config.hotelNombre}</div>
+      </div>
+    );
     return (
       <div className="fade" style={{background:"#f5f0e8",minHeight:"100vh",paddingBottom:"2rem",overflowY:"auto"}}>
         <div style={{background:"#0d2340",padding:"1rem 1.4rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -728,17 +738,28 @@ export default function App() {
             {huespedes.length===0 && <div style={{textAlign:"center",color:"#999",fontFamily:"sans-serif",fontSize:"0.8rem",marginTop:"2rem"}}>No hay huéspedes registrados aún.</div>}
             {[...huespedes].reverse().map(h => {
               const hUsos = usos.filter(u => u.huespedId===h.id);
+              const activo = h.activo !== false;
+              const toggleActivo = async () => { await fsHuesped({...h, activo: !activo}); showToast(activo ? "Pasaporte desactivado" : "Pasaporte activado ✓"); };
               return (
-                <div key={h.id} style={{background:"white",borderRadius:14,border:"1px solid #ede5d4",padding:"1rem 1.1rem",boxShadow:"0 1px 5px rgba(0,0,0,0.06)"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                    <div style={{fontSize:"0.95rem",color:"#0d2340",fontStyle:"italic"}}>{h.nombre} {h.apellido}</div>
-                    <div style={{background:hUsos.length>0?"#1a4a5c":"#eee",color:hUsos.length>0?"white":"#999",fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,padding:"3px 8px",borderRadius:20}}>{hUsos.length} desc.</div>
+                <div key={h.id} style={{background:"white",borderRadius:14,border:`1px solid ${activo?"#ede5d4":"#f5c0b0"}`,padding:"1rem 1.1rem",boxShadow:"0 1px 5px rgba(0,0,0,0.06)",opacity:activo?1:0.8}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6,gap:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:"0.95rem",color:activo?"#0d2340":"#aaa",fontStyle:"italic"}}>{h.nombre} {h.apellido}</div>
+                      {h.mail && <div style={{fontSize:"0.6rem",color:"#888",fontFamily:"sans-serif",marginTop:1}}>{h.mail}</div>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                      <div style={{background:hUsos.length>0?"#1a4a5c":"#eee",color:hUsos.length>0?"white":"#999",fontSize:"0.55rem",fontFamily:"sans-serif",fontWeight:700,padding:"3px 8px",borderRadius:20}}>{hUsos.length} desc.</div>
+                      <button onClick={toggleActivo} style={{background:activo?"#fff8e6":"#fef0ee",border:`1px solid ${activo?"#c9a84c":"#e85020"}`,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:"0.58rem",fontFamily:"sans-serif",fontWeight:700,color:activo?"#c9a84c":"#e85020",whiteSpace:"nowrap"}}>
+                        {activo ? "✓ Activo" : "✗ Inactivo"}
+                      </button>
+                    </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,marginBottom:hUsos.length>0?8:0}}>
                     {[["Check-in",fmtDate(h.desde)],["Check-out",fmtDate(h.hasta)]].map(([l,v]) => (
                       <div key={l}><div style={{fontSize:"0.5rem",color:"#aaa",fontFamily:"sans-serif",fontWeight:700,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:"0.72rem",color:"#4a3728",fontFamily:"sans-serif"}}>{v}</div></div>
                     ))}
                   </div>
+                  {!activo && <div style={{background:"#fef0ee",borderRadius:8,padding:"0.4rem 0.7rem",fontSize:"0.65rem",fontFamily:"sans-serif",color:"#e85020",marginBottom:hUsos.length>0?6:0}}>🔒 Pasaporte desactivado</div>}
                   {hUsos.length > 0 && (
                     <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                       {hUsos.map(u => (
