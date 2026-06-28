@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --bg:         #0A0A0A;
+  --bg-2:       #111111;
+  --bg-card:    #161616;
+  --border:     rgba(255,255,255,0.07);
+  --border-h:   rgba(255,154,0,0.35);
+  --copper:     #FF9A00;
+  --gold:       #D4AF37;
+  --gold-light: #FFBE3D;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: #fff;
+  font-family: system-ui, sans-serif;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #FF9A00, #FFBE3D, #FF9A00);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #161616 inset;
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+}
