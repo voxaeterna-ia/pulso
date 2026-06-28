@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
+import { getFirebaseDb } from "@/lib/firebase";
 import Navbar from "@/components/layout/Navbar";
 
 const KYC_STEPS = [
@@ -29,7 +29,7 @@ export default function PerfilPage() {
     e.preventDefault();
     if (step < 3) { setStep(s => s + 1); return; }
     try {
-      await updateDoc(doc(db, "users", user!.id), { kycStatus: "en_revision" });
+      await updateDoc(doc(getFirebaseDb(), "users", user!.id), { kycStatus: "en_revision" });
       setSaved(true);
     } catch {
       alert("Error al enviar. Intentá de nuevo.");
