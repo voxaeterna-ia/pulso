@@ -179,9 +179,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function updateUser(data: Partial<User>) {
     if (!user) return;
-    const ref = doc(getFirebaseDb(), "users", user.id);
-    await updateDoc(ref, data as Record<string, unknown>);
-    setUserAndCache(user ? { ...user, ...data } : null);
+    // Actualizar estado local y cache PRIMERO (inmediato, sin esperar red)
+    const updated = { ...user, ...data };
+    setUserAndCache(updated);
+    // Persistir en Firestore en background via REST (no bloquea)
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const idToken = await getFirebaseAuth().currentUser?.getIdToken().catch(() => null);
+    if (idToken && apiKey && projectId) {
+      const fields: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(data)) {
+        fields[k] = v === null ? { nullValue: null }
+          : typeof v === "boolean" ? { booleanValue: v }
+          : typeof v === "number"  ? { integerValue: String(v) }
+          : { stringValue: String(v) };
+      }
+      fetch(
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${user.id}?updateMask.fieldPaths=${Object.keys(data).join("&updateMask.fieldPaths=")}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify({ fields }),
+        }
+      ).catch(() => {
+        // Si REST falla, intentamos con el SDK como fallback
+        const ref = doc(getFirebaseDb(), "users", user.id);
+        updateDoc(ref, data as Record<string, unknown>).catch(() => {});
+      });
+    } else {
+      // Sin token (login vía REST aún sincronizando), usar SDK directamente
+      const ref = doc(getFirebaseDb(), "users", user.id);
+      updateDoc(ref, data as Record<string, unknown>).catch(() => {});
+    }
   }
 
   return (
