@@ -59,33 +59,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    // REST API directa: evita que el SDK cuelgue en Safari mobile (IndexedDB / cola interna)
+    function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+      return Promise.race([
+        promise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+      ]);
+    }
+
+    // Paso 1: autenticar via REST (bypass del SDK que se congela en Safari mobile)
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    const res = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, returnSecureToken: true }),
-      }
-    );
+    const controller = new AbortController();
+    const authTimer = setTimeout(() => controller.abort(), 10000);
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+          signal: controller.signal,
+        }
+      );
+    } catch {
+      throw new Error("network-error");
+    } finally {
+      clearTimeout(authTimer);
+    }
+
     const data = await res.json();
     if (!res.ok) {
       const code: string = data?.error?.message ?? "UNKNOWN";
       if (code.includes("INVALID_LOGIN_CREDENTIALS") || code.includes("INVALID_PASSWORD") || code.includes("EMAIL_NOT_FOUND")) {
         throw new Error("invalid-credential");
       }
-      if (code.includes("TOO_MANY_ATTEMPTS")) {
-        throw new Error("too-many-requests");
-      }
+      if (code.includes("TOO_MANY_ATTEMPTS")) throw new Error("too-many-requests");
       throw new Error(code);
     }
 
-    // Cargamos datos del usuario directamente de Firestore con el uid recibido
     const uid: string = data.localId;
+
+    // Paso 2: cargar perfil de Firestore con timeout de 5s (si falla usamos fallback)
     const ref = doc(getFirebaseDb(), "users", uid);
-    let snap;
-    try { snap = await getDoc(ref); } catch { snap = null; }
+    const snap = await withTimeout(getDoc(ref).catch(() => null), 5000);
 
     if (snap && snap.exists()) {
       setUser({ id: uid, ...snap.data() } as User);
@@ -98,11 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         kycStatus: "pendiente" as const,
         createdAt: new Date(),
       };
-      try { await setDoc(ref, { ...fallback, createdAt: serverTimestamp() }); } catch { /* reglas pendientes */ }
       setUser({ id: uid, ...fallback });
+      // Guardar en Firestore en background sin bloquear
+      setDoc(ref, { ...fallback, createdAt: serverTimestamp() }).catch(() => {});
     }
 
-    // En segundo plano sincronizamos el SDK (para que onAuthStateChanged funcione luego)
+    // Sincronizar SDK en background (no bloquea el login)
     signInWithEmailAndPassword(getFirebaseAuth(), email, password).catch(() => {});
   }
 
