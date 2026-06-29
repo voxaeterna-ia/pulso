@@ -4,6 +4,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -74,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...newUser,
       createdAt: serverTimestamp(),
     });
+    // Email de bienvenida/confirmación
+    try { await sendEmailVerification(cred.user); } catch { /* no bloquea el registro */ }
     setUser({ id: cred.user.uid, ...newUser });
   }
 
