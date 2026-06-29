@@ -11,6 +11,24 @@ import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firest
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
 import { User, UserRole } from "@/types";
 
+const CACHE_KEY = "mt_user_v1";
+
+function loadCachedUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch { return null; }
+}
+
+function cacheUser(u: User | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (u) sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
+    else sessionStorage.removeItem(CACHE_KEY);
+  } catch {}
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -23,8 +41,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]       = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = loadCachedUser();
+  const [user, setUser]       = useState<User | null>(cached);
+  // Si hay usuario cacheado no mostramos spinner de carga
+  const [loading, setLoading] = useState(!cached);
+
+  function setUserAndCache(u: User | null) {
+    cacheUser(u);
+    setUser(u);
+  }
 
   useEffect(() => {
     const unsub = onAuthStateChanged(getFirebaseAuth(), async (firebaseUser) => {
@@ -35,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try { snap = await getDoc(ref); } catch { snap = null; }
 
           if (snap && snap.exists()) {
-            setUser({ id: firebaseUser.uid, ...snap.data() } as User);
+            setUserAndCache({ id: firebaseUser.uid, ...snap.data() } as User);
           } else {
             const fallback = {
               email: firebaseUser.email ?? "",
@@ -45,18 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               kycStatus: "pendiente" as const,
               createdAt: new Date(),
             };
-            try { await setDoc(ref, { ...fallback, createdAt: serverTimestamp() }); } catch { /* reglas pendientes */ }
-            setUser({ id: firebaseUser.uid, ...fallback });
+            try { await setDoc(ref, { ...fallback, createdAt: serverTimestamp() }); } catch {}
+            setUserAndCache({ id: firebaseUser.uid, ...fallback });
           }
         } else {
-          setUser(null);
+          // SDK dice que no hay sesión — solo limpiar si tampoco hay cache reciente
+          // (evita borrar al usuario que acaba de loguear via REST mientras el SDK aún sincroniza)
+          const stillCached = loadCachedUser();
+          if (!stillCached) setUserAndCache(null);
         }
       } finally {
         setLoading(false);
       }
     });
     return unsub;
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function signIn(email: string, password: string) {
     function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -103,23 +131,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ref = doc(getFirebaseDb(), "users", uid);
     const snap = await withTimeout(getDoc(ref).catch(() => null), 5000);
 
-    if (snap && snap.exists()) {
-      setUser({ id: uid, ...snap.data() } as User);
-    } else {
-      const fallback = {
-        email,
-        name: email.split("@")[0],
-        role: "inversor" as const,
-        mktBalance: 500,
-        kycStatus: "pendiente" as const,
-        createdAt: new Date(),
-      };
-      setUser({ id: uid, ...fallback });
-      // Guardar en Firestore en background sin bloquear
-      setDoc(ref, { ...fallback, createdAt: serverTimestamp() }).catch(() => {});
+    const userObj: User = snap && snap.exists()
+      ? ({ id: uid, ...snap.data() } as User)
+      : {
+          id: uid,
+          email,
+          name: email.split("@")[0],
+          role: "inversor" as const,
+          mktBalance: 500,
+          kycStatus: "pendiente" as const,
+          createdAt: new Date(),
+        };
+
+    // Guardar en cache ANTES de navegar para que el reload lo encuentre
+    setUserAndCache(userObj);
+
+    if (!(snap && snap.exists())) {
+      setDoc(ref, { ...userObj, createdAt: serverTimestamp() }).catch(() => {});
     }
 
-    // Sincronizar SDK en background (no bloquea el login)
+    // Sincronizar SDK en background
     signInWithEmailAndPassword(getFirebaseAuth(), email, password).catch(() => {});
   }
 
@@ -137,20 +168,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...newUser,
       createdAt: serverTimestamp(),
     });
-    try { await sendEmailVerification(cred.user); } catch { /* no bloquea el registro */ }
-    setUser({ id: cred.user.uid, ...newUser });
+    try { await sendEmailVerification(cred.user); } catch {}
+    setUserAndCache({ id: cred.user.uid, ...newUser });
   }
 
   async function signOut() {
     await firebaseSignOut(getFirebaseAuth());
-    setUser(null);
+    setUserAndCache(null);
   }
 
   async function updateUser(data: Partial<User>) {
     if (!user) return;
     const ref = doc(getFirebaseDb(), "users", user.id);
     await updateDoc(ref, data as Record<string, unknown>);
-    setUser(prev => prev ? { ...prev, ...data } : prev);
+    setUserAndCache(user ? { ...user, ...data } : null);
   }
 
   return (
