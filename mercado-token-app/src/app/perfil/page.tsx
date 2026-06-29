@@ -23,21 +23,82 @@ const KYC_STATUS_INFO = {
   rechazado:   { label: "Rechazado",   color: "#EF4444", icon: "❌", desc: "Hubo un problema con tu verificación. Contactanos." },
 };
 
-function FileUpload({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+type ValidateMode = "document" | "face" | "none";
+
+function SmartUpload({
+  label, value, onChange, hint, mode = "none", capture = "environment",
+}: {
+  label: string;
+  value: string;
+  onChange: (name: string) => void;
+  hint?: string;
+  mode?: ValidateMode;
+  capture?: "environment" | "user";
+}) {
+  const [validating, setValidating] = useState(false);
+  const [error, setError]           = useState("");
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setValidating(true);
+    onChange("");
+
+    try {
+      if (mode === "document") {
+        const { validateDocument } = await import("@/lib/services/imageValidation");
+        const result = await validateDocument(file);
+        if (!result.valid) { setError(result.error ?? "Imagen inválida."); setValidating(false); return; }
+      }
+      if (mode === "face") {
+        const { validateFace } = await import("@/lib/services/imageValidation");
+        const result = await validateFace(file);
+        if (!result.valid) { setError(result.error ?? "No se detectó un rostro válido."); setValidating(false); return; }
+      }
+      onChange(file.name);
+    } catch {
+      setError("Error al procesar la imagen. Intentá de nuevo.");
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  const state = validating ? "validating" : value ? "ok" : error ? "error" : "empty";
+  const borderColor = state === "ok" ? "#FF9A00" : state === "error" ? "#EF4444" : "rgba(255,255,255,0.1)";
+
   return (
     <div>
       <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>{label}</label>
       {hint && <p className="text-xs mb-2" style={{ color: "#6B6358" }}>{hint}</p>}
+
       <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition"
-             style={{ background: "#161616", border: `2px dashed ${value ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
-        <span className="text-2xl">{value ? "✅" : "📷"}</span>
-        <span className="text-sm font-medium" style={{ color: value ? "var(--copper)" : "#6B6358" }}>
-          {value || "Tocá para sacar la foto"}
+             style={{ background: "#161616", border: `2px dashed ${borderColor}`, opacity: validating ? 0.7 : 1 }}>
+        <span className="text-2xl">
+          {state === "validating" ? "⏳" : state === "ok" ? "✅" : state === "error" ? "❌" : "📷"}
         </span>
-        <span className="text-xs" style={{ color: "#4a4a4a" }}>JPG, PNG · Máx 10MB</span>
-        <input type="file" accept="image/*" capture="environment" className="hidden"
-               onChange={e => onChange(e.target.files?.[0]?.name || "")} />
+        <span className="text-sm font-medium text-center px-2" style={{ color: state === "ok" ? "#FF9A00" : state === "error" ? "#EF4444" : "#6B6358" }}>
+          {state === "validating" ? "Validando imagen..." : state === "ok" ? value : state === "error" ? "Imagen rechazada" : "Tocá para sacar la foto"}
+        </span>
+        {state !== "validating" && (
+          <span className="text-xs" style={{ color: "#4a4a4a" }}>
+            {mode === "document" ? "JPG, PNG · DNI horizontal · Máx 20MB" :
+             mode === "face"     ? "JPG, PNG · Rostro visible · Máx 20MB" :
+             "JPG, PNG · Máx 20MB"}
+          </span>
+        )}
+        <input type="file" accept="image/jpeg,image/png,image/webp" capture={capture}
+               className="hidden" onChange={handleFile} />
       </label>
+
+      {error && (
+        <div className="mt-2 p-3 rounded-lg text-xs flex items-start gap-2"
+             style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#FCA5A5" }}>
+          <span className="flex-shrink-0">⚠️</span>
+          <span>{error} <button className="underline ml-1" style={{ color: "#FF9A00" }}
+                onClick={() => setError("")}>Intentar de nuevo</button></span>
+        </div>
+      )}
     </div>
   );
 }
@@ -346,10 +407,11 @@ export default function PerfilPage() {
                            onFocus={e => e.target.style.borderColor = "var(--copper)"}
                            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
                   </div>
-                  <FileUpload label="Frente del documento" value={form.fileNameFront}
-                              hint="Asegurate que el texto sea legible y esté bien iluminado"
+                  <SmartUpload label="Frente del documento" value={form.fileNameFront} mode="document"
+                              hint="Fotografiá el frente del DNI en posición horizontal. El texto debe ser legible."
                               onChange={v => setForm(p => ({ ...p, fileNameFront: v }))} />
-                  <FileUpload label="Reverso del documento" value={form.fileNameBack}
+                  <SmartUpload label="Reverso del documento" value={form.fileNameBack} mode="document"
+                              hint="Fotografiá el reverso del DNI en posición horizontal."
                               onChange={v => setForm(p => ({ ...p, fileNameBack: v }))} />
                 </>
               )}
@@ -376,10 +438,12 @@ export default function PerfilPage() {
                       ))}
                     </ul>
                   </div>
-                  <FileUpload
+                  <SmartUpload
                     label="Selfie sosteniendo el documento"
                     value={form.fileNameSelfie}
-                    hint="Usá la cámara frontal de tu celular"
+                    mode="face"
+                    capture="user"
+                    hint="Usá la cámara frontal. Tu cara y el DNI deben ser visibles."
                     onChange={v => setForm(p => ({ ...p, fileNameSelfie: v }))}
                   />
                   {!form.fileNameSelfie && (
