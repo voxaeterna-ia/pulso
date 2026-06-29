@@ -32,8 +32,8 @@ export default function LoginPage() {
          style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,154,0,0.08), transparent 60%), #0A0A0A" }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image src="/logo-brand.png" alt="Mercado Token" width={180} height={60}
-                 style={{ objectFit: "contain", height: 52, width: "auto", margin: "0 auto 16px" }} />
+          <Image src="/logo-brand.png" alt="Mercado Token" width={220} height={220}
+                 style={{ objectFit: "contain", height: 120, width: "auto", margin: "0 auto 16px", mixBlendMode: "screen" }} />
           <p style={{ color: "#A1A1AA", fontSize: "0.9rem" }}>Marketplace Global de Activos Tokenizados</p>
         </div>
 
