@@ -73,10 +73,10 @@ export default function DashboardPage() {
               <div className="font-semibold text-white mb-1">Completá tu verificación de identidad</div>
               <div className="text-sm" style={{ color: "#A1A1AA" }}>Para invertir necesitás completar el proceso KYC. Solo toma unos minutos.</div>
             </div>
-            <button className="px-5 py-2.5 rounded-lg font-semibold text-sm flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #FF9A00, #D4AF37)", color: "#000" }}>
-              Verificar ahora
-            </button>
+            <Link href="/perfil" className="px-5 py-2.5 rounded-lg font-semibold text-sm flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, #FF9A00, #D4AF37)", color: "#000", textDecoration: "none" }}>
+              Verificar ahora →
+            </Link>
           </div>
         )}
 
