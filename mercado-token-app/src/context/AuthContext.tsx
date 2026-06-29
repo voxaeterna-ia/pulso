@@ -7,7 +7,7 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
 import { User, UserRole } from "@/types";
 
 interface AuthContextType {
@@ -25,11 +25,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsub = onAuthStateChanged(getFirebaseAuth(), async (firebaseUser) => {
       if (firebaseUser) {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+        const ref = doc(getFirebaseDb(), "users", firebaseUser.uid);
+        const snap = await getDoc(ref);
         if (snap.exists()) {
           setUser({ id: firebaseUser.uid, ...snap.data() } as User);
+        } else {
+          // Doc missing — create fallback profile so login doesn't loop
+          const fallback = {
+            email: firebaseUser.email ?? "",
+            name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "Usuario",
+            role: "inversor" as const,
+            mktBalance: 500,
+            kycStatus: "pendiente" as const,
+            createdAt: serverTimestamp(),
+          };
+          await setDoc(ref, fallback);
+          setUser({ id: firebaseUser.uid, ...fallback, createdAt: new Date() } as User);
         }
       } else {
         setUser(null);
@@ -40,11 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
   }
 
   async function signUp(email: string, password: string, name: string, role: UserRole) {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
     const newUser: Omit<User, "id"> = {
       email,
       name,
@@ -53,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       kycStatus: "pendiente",
       createdAt: new Date(),
     };
-    await setDoc(doc(db, "users", cred.user.uid), {
+    await setDoc(doc(getFirebaseDb(), "users", cred.user.uid), {
       ...newUser,
       createdAt: serverTimestamp(),
     });
@@ -61,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    await firebaseSignOut(auth);
+    await firebaseSignOut(getFirebaseAuth());
     setUser(null);
   }
 

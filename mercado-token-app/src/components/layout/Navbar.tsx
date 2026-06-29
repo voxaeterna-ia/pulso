@@ -17,7 +17,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3"
          style={{ background: "rgba(10,10,10,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid var(--border)" }}>
       <Link href="/dashboard" className="flex items-center gap-3">
-        <Image src="/logo-brand.png" alt="Mercado Token" width={120} height={40} style={{ objectFit: "contain", height: 36, width: "auto" }} />
+        <Image src="/logo-brand.png" alt="Mercado Token" width={120} height={40} style={{ objectFit: "contain", height: 36, width: "auto", mixBlendMode: "screen" }} />
       </Link>
 
       <div className="flex items-center gap-2">
