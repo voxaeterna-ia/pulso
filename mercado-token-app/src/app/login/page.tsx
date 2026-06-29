@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +10,6 @@ export default function LoginPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
   const { signIn } = useAuth();
-  const router     = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,10 +17,17 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.push("/dashboard");
-    } catch {
-      setError("Email o contraseña incorrectos.");
-    } finally {
+      // window.location.href es más confiable que router.push en mobile
+      window.location.href = "/dashboard";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("user-not-found")) {
+        setError("Email o contraseña incorrectos.");
+      } else if (msg.includes("too-many-requests")) {
+        setError("Demasiados intentos. Esperá unos minutos e intentá de nuevo.");
+      } else {
+        setError("Error al ingresar. Verificá tu conexión e intentá de nuevo.");
+      }
       setLoading(false);
     }
   }
@@ -50,33 +55,41 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm mb-1.5" style={{ color: "#A1A1AA" }}>Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                     autoComplete="email"
                      placeholder="nombre@empresa.com"
                      className="w-full px-4 py-3 rounded-lg text-white text-sm outline-none transition"
                      style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}
-                     onFocus={e => e.target.style.borderColor = "var(--copper)"}
+                     onFocus={e => e.target.style.borderColor = "#FF9A00"}
                      onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
             </div>
 
             <div>
               <label className="block text-sm mb-1.5" style={{ color: "#A1A1AA" }}>Contraseña</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                     autoComplete="current-password"
                      placeholder="••••••••"
                      className="w-full px-4 py-3 rounded-lg text-white text-sm outline-none transition"
                      style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}
-                     onFocus={e => e.target.style.borderColor = "var(--copper)"}
+                     onFocus={e => e.target.style.borderColor = "#FF9A00"}
                      onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
             </div>
 
             <button type="submit" disabled={loading}
-                    className="w-full py-3 rounded-lg font-bold text-sm transition mt-2"
-                    style={{ background: loading ? "#555" : "linear-gradient(135deg, #FF9A00, #D4AF37)", color: "#000" }}>
-              {loading ? "Ingresando..." : "Ingresar"}
+                    className="w-full py-3 rounded-lg font-bold text-sm transition mt-2 flex items-center justify-center gap-2"
+                    style={{ background: loading ? "#333" : "linear-gradient(135deg, #FF9A00, #D4AF37)", color: loading ? "#666" : "#000" }}>
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin inline-block"
+                        style={{ borderColor: "#888", borderTopColor: "transparent" }} />
+                  Ingresando...
+                </>
+              ) : "Ingresar"}
             </button>
           </form>
 
           <p className="text-center mt-6 text-sm" style={{ color: "#A1A1AA" }}>
             ¿No tenés cuenta?{" "}
-            <Link href="/registro" style={{ color: "var(--gold-light)" }} className="font-semibold">
+            <Link href="/registro" style={{ color: "#FFBE3D" }} className="font-semibold">
               Registrate
             </Link>
           </p>
