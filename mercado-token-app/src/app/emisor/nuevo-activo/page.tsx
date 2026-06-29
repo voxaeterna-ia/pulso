@@ -264,12 +264,52 @@ export default function NuevoActivoPage() {
     }
   }
 
-  if (!user || user.role !== "emisor") {
+  const [switching, setSwitching] = useState(false);
+  const { updateUser } = useAuth();
+
+  async function switchToEmisor() {
+    setSwitching(true);
+    try {
+      await updateUser({ role: "emisor" });
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  if (!user) {
     return (
       <div style={{ background: "#0A0A0A", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...CARD, textAlign: "center", maxWidth: 400 }}>
-          <p style={{ color: "#EF4444", fontWeight: 700, marginBottom: 8 }}>Acceso restringido</p>
-          <p style={{ color: "#A1A1AA", fontSize: "0.9rem" }}>Solo los emisores pueden cargar activos. Cambiá tu rol en Perfil.</p>
+          <p style={{ color: "#A1A1AA" }}>Iniciá sesión para cargar activos.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== "emisor") {
+    return (
+      <div style={{ background: "#0A0A0A", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={{ ...CARD, textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>🏢</div>
+          <h2 style={{ color: "#fff", fontWeight: 800, fontSize: "1.2rem", marginBottom: 8 }}>Cargar activos</h2>
+          <p style={{ color: "#A1A1AA", fontSize: "0.9rem", marginBottom: 24, lineHeight: 1.5 }}>
+            Para cargar activos necesitás el rol de <strong style={{ color: "#FF9A00" }}>Emisor</strong>. Podés activarlo ahora sin perder tu cuenta.
+          </p>
+          <div style={{ background: "rgba(255,154,0,0.08)", border: "1px solid rgba(255,154,0,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, textAlign: "left" }}>
+            <p style={{ color: "#A1A1AA", fontSize: "0.82rem", lineHeight: 1.5 }}>
+              Tu rol actual es <strong style={{ color: "#fff" }}>{user.role}</strong>. Al cambiar a Emisor podrás cargar activos tokenizables para validación. Podrás volver a cambiar tu rol desde Perfil cuando quieras.
+            </p>
+          </div>
+          <button
+            onClick={switchToEmisor}
+            disabled={switching}
+            style={{ ...BTN_PRIMARY, width: "100%", opacity: switching ? 0.7 : 1 }}
+          >
+            {switching ? "Cambiando rol..." : "🚀 Activar rol Emisor y continuar"}
+          </button>
+          <button onClick={() => router.back()} style={{ ...BTN_SECONDARY, width: "100%", marginTop: 10 }}>
+            Volver
+          </button>
         </div>
       </div>
     );
