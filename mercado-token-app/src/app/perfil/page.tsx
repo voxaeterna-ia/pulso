@@ -26,7 +26,7 @@ export default function PerfilPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm]   = useState({
-    phone: "", country: "", docType: "DNI", docNumber: "", fileName: ""
+    phone: "", country: "", docType: "DNI", docNumber: "", fileNameFront: "", fileNameBack: ""
   });
 
   useEffect(() => {
@@ -223,17 +223,25 @@ export default function PerfilPage() {
                            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
                   </div>
                   <div>
-                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Foto del documento</label>
-                    <label className="flex flex-col items-center justify-center gap-2 w-full py-6 rounded-lg cursor-pointer transition"
-                           style={{ background: "#161616", border: "2px dashed rgba(255,255,255,0.1)" }}
-                           onMouseOver={e => (e.currentTarget.style.borderColor = "var(--copper)")}
-                           onMouseOut={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}>
-                      <span className="text-2xl">{form.fileName ? "📎" : "📷"}</span>
-                      <span className="text-sm" style={{ color: form.fileName ? "var(--copper)" : "#6B6358" }}>
-                        {form.fileName || "Hacé clic para subir una imagen"}
+                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Foto del documento — Frente</label>
+                    <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition mb-3"
+                           style={{ background: "#161616", border: `2px dashed ${form.fileNameFront ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
+                      <span className="text-2xl">{form.fileNameFront ? "✅" : "📷"}</span>
+                      <span className="text-sm" style={{ color: form.fileNameFront ? "var(--copper)" : "#6B6358" }}>
+                        {form.fileNameFront || "Subí el frente del documento"}
                       </span>
-                      <input type="file" accept="image/*" className="hidden"
-                             onChange={e => setForm(p => ({ ...p, fileName: e.target.files?.[0]?.name || "" }))} />
+                      <input type="file" accept="image/*" capture="environment" className="hidden"
+                             onChange={e => setForm(p => ({ ...p, fileNameFront: e.target.files?.[0]?.name || "" }))} />
+                    </label>
+                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Foto del documento — Reverso</label>
+                    <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition"
+                           style={{ background: "#161616", border: `2px dashed ${form.fileNameBack ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
+                      <span className="text-2xl">{form.fileNameBack ? "✅" : "📷"}</span>
+                      <span className="text-sm" style={{ color: form.fileNameBack ? "var(--copper)" : "#6B6358" }}>
+                        {form.fileNameBack || "Subí el reverso del documento"}
+                      </span>
+                      <input type="file" accept="image/*" capture="environment" className="hidden"
+                             onChange={e => setForm(p => ({ ...p, fileNameBack: e.target.files?.[0]?.name || "" }))} />
                     </label>
                   </div>
                 </>
@@ -253,7 +261,8 @@ export default function PerfilPage() {
                       { label: "Teléfono", value: form.phone },
                       { label: "País", value: form.country },
                       { label: "Documento", value: `${form.docType} · ${form.docNumber}` },
-                      { label: "Archivo", value: form.fileName || "No adjuntado" },
+                      { label: "DNI Frente", value: form.fileNameFront || "No adjuntado" },
+                      { label: "DNI Reverso", value: form.fileNameBack || "No adjuntado" },
                     ].map((row, i) => (
                       <div key={row.label} className="flex justify-between px-4 py-3"
                            style={{ background: i % 2 === 0 ? "#111" : "#161616" }}>
