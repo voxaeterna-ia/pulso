@@ -5,6 +5,8 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { getFirebaseDb } from "@/lib/firebase";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { UserRole } from "@/types";
 
 const KYC_STEPS = [
   { id: 1, label: "Datos",      icon: "👤" },
@@ -42,10 +44,12 @@ function FileUpload({ label, value, onChange, hint }: { label: string; value: st
 export default function PerfilPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [step, setStep]     = useState(1);
-  const [saved, setSaved]   = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm]     = useState({
+  const [step, setStep]         = useState(1);
+  const [saved, setSaved]       = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleChanged, setRoleChanged] = useState(false);
+  const [form, setForm]         = useState({
     phone: "", country: "", docType: "DNI", docNumber: "",
     fileNameFront: "", fileNameBack: "", fileNameSelfie: ""
   });
@@ -63,6 +67,20 @@ export default function PerfilPage() {
 
   const kycInfo = KYC_STATUS_INFO[user.kycStatus];
   const TOTAL_STEPS = KYC_STEPS.length;
+
+  async function handleRoleChange(newRole: UserRole) {
+    if (!user || newRole === user.role || roleSaving) return;
+    setRoleSaving(true);
+    try {
+      await updateDoc(doc(getFirebaseDb(), "users", user!.id), { role: newRole });
+      setRoleChanged(true);
+      setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
+    } catch {
+      alert("Error al cambiar el rol. Intentá de nuevo.");
+    } finally {
+      setRoleSaving(false);
+    }
+  }
 
   async function handleKYC(e: React.FormEvent) {
     e.preventDefault();
@@ -122,6 +140,74 @@ export default function PerfilPage() {
           </div>
           <div className="mt-4 p-3 rounded-lg" style={{ background: `${kycInfo.color}0d`, border: `1px solid ${kycInfo.color}33` }}>
             <p className="text-sm" style={{ color: "#A1A1AA" }}>{kycInfo.desc}</p>
+          </div>
+        </div>
+
+        {/* Selector de rol */}
+        <div className="p-6 rounded-xl mb-6" style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <h2 className="font-bold text-white mb-1">Tipo de cuenta</h2>
+          <p className="text-sm mb-5" style={{ color: "#6B6358" }}>
+            Podés cambiar tu rol en cualquier momento. El cambio aplica de inmediato.
+          </p>
+
+          {roleChanged && (
+            <div className="mb-4 p-3 rounded-lg text-sm text-center"
+                 style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", color: "#10B981" }}>
+              ✅ Rol actualizado. Redirigiendo al panel...
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3">
+            {([
+              {
+                role: "inversor" as UserRole,
+                icon: "🌍",
+                title: "Inversor",
+                desc: "Explorá activos tokenizados y construí tu portafolio de inversión.",
+              },
+              {
+                role: "emisor" as UserRole,
+                icon: "🏢",
+                title: "Emisor de activos",
+                desc: "Cargá tus activos reales para tokenizarlos en la plataforma y acceder a inversores.",
+              },
+              {
+                role: "invitado" as UserRole,
+                icon: "👀",
+                title: "Invitado",
+                desc: "Explorá la plataforma sin compromisos. Limitado a ver el marketplace.",
+              },
+            ] as { role: UserRole; icon: string; title: string; desc: string }[]).map(opt => {
+              const isActive = user.role === opt.role;
+              return (
+                <button key={opt.role} onClick={() => handleRoleChange(opt.role)} disabled={roleSaving || roleChanged}
+                        className="p-4 rounded-xl text-left transition w-full"
+                        style={{
+                          background: isActive ? "rgba(255,154,0,0.08)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isActive ? "rgba(255,154,0,0.35)" : "rgba(255,255,255,0.07)"}`,
+                          cursor: isActive ? "default" : "pointer",
+                          opacity: roleSaving ? 0.6 : 1,
+                        }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{opt.icon}</span>
+                      <div>
+                        <div className="font-semibold text-sm" style={{ color: isActive ? "#FF9A00" : "#fff" }}>
+                          {opt.title}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: "#6B6358" }}>{opt.desc}</div>
+                      </div>
+                    </div>
+                    {isActive && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ml-3"
+                            style={{ background: "rgba(255,154,0,0.15)", color: "#FF9A00", border: "1px solid rgba(255,154,0,0.3)" }}>
+                        Actual
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -359,6 +445,7 @@ export default function PerfilPage() {
         )}
 
       </main>
+      <Footer />
     </div>
   );
 }
