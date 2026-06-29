@@ -415,33 +415,33 @@ function Step1({ data, set, errors }: { data: WizardData; set: (k: string, v: st
       <div style={CARD}>
         <h2 style={{ color: "#fff", fontWeight: 700, marginBottom: 16, fontSize: "1.05rem" }}>Información general</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Field k="nombre_del_activo" label="Nombre del activo" required />
-          <Field k="subtitulo" label="Subtítulo" />
-          <Field k="descripcion_corta" label="Descripción corta" required type="textarea" hint="Máximo 2 oraciones. Aparece en el listado del marketplace." />
-          <Field k="descripcion_completa" label="Descripción completa" required type="textarea" />
-          <Field k="objetivo_de_la_tokenizacion" label="Objetivo de la tokenización" required type="textarea" />
-          <Sel k="estado_actual_del_proyecto" label="Estado actual del proyecto" options={ESTADO_PROYECTO_OPTIONS} />
+          {Field({ k: "nombre_del_activo", label: "Nombre del activo", required: true })}
+          {Field({ k: "subtitulo", label: "Subtítulo" })}
+          {Field({ k: "descripcion_corta", label: "Descripción corta", required: true, type: "textarea", hint: "Máximo 2 oraciones. Aparece en el listado del marketplace." })}
+          {Field({ k: "descripcion_completa", label: "Descripción completa", required: true, type: "textarea" })}
+          {Field({ k: "objetivo_de_la_tokenizacion", label: "Objetivo de la tokenización", required: true, type: "textarea" })}
+          {Sel({ k: "estado_actual_del_proyecto", label: "Estado actual del proyecto", options: ESTADO_PROYECTO_OPTIONS })}
         </div>
       </div>
 
       <div style={CARD}>
         <h2 style={{ color: "#fff", fontWeight: 700, marginBottom: 16, fontSize: "1.05rem" }}>Ubicación</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ gridColumn: "1/-1" }}><Sel k="pais" label="País" options={PAISES} /></div>
-          <Field k="provincia_estado" label="Provincia / Estado" />
-          <Field k="ciudad" label="Ciudad" />
-          <div style={{ gridColumn: "1/-1" }}><Field k="direccion_referencial" label="Dirección referencial" /></div>
+          <div style={{ gridColumn: "1/-1" }}>{Sel({ k: "pais", label: "País", options: PAISES })}</div>
+          {Field({ k: "provincia_estado", label: "Provincia / Estado" })}
+          {Field({ k: "ciudad", label: "Ciudad" })}
+          <div style={{ gridColumn: "1/-1" }}>{Field({ k: "direccion_referencial", label: "Dirección referencial" })}</div>
         </div>
       </div>
 
       <div style={CARD}>
         <h2 style={{ color: "#fff", fontWeight: 700, marginBottom: 16, fontSize: "1.05rem" }}>Empresa y contacto</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ gridColumn: "1/-1" }}><Field k="empresa_emisora" label="Empresa emisora" required /></div>
-          <div style={{ gridColumn: "1/-1" }}><Field k="responsable_del_proyecto" label="Responsable del proyecto" required /></div>
-          <Field k="email_contacto" label="Email de contacto" required type="email" />
-          <Field k="telefono_contacto" label="Teléfono" type="tel" />
-          <div style={{ gridColumn: "1/-1" }}><Field k="sitio_web" label="Sitio web" type="url" /></div>
+          <div style={{ gridColumn: "1/-1" }}>{Field({ k: "empresa_emisora", label: "Empresa emisora", required: true })}</div>
+          <div style={{ gridColumn: "1/-1" }}>{Field({ k: "responsable_del_proyecto", label: "Responsable del proyecto", required: true })}</div>
+          {Field({ k: "email_contacto", label: "Email de contacto", required: true, type: "email" })}
+          {Field({ k: "telefono_contacto", label: "Teléfono", type: "tel" })}
+          <div style={{ gridColumn: "1/-1" }}>{Field({ k: "sitio_web", label: "Sitio web", type: "url" })}</div>
         </div>
       </div>
     </div>
