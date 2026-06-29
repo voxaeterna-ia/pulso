@@ -1,5 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence, type Auth } from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -20,12 +20,7 @@ let _auth: Auth | null = null;
 let _db: Firestore | null = null;
 
 export function getFirebaseAuth(): Auth {
-  if (!_auth) {
-    _auth = getAuth(getFirebaseApp());
-    // localStorage funciona en todos los browsers incluyendo Safari mobile
-    // IndexedDB (default) puede bloquearse en Safari causando login infinito
-    setPersistence(_auth, browserLocalPersistence).catch(() => {});
-  }
+  if (!_auth) _auth = getAuth(getFirebaseApp());
   return _auth;
 }
 

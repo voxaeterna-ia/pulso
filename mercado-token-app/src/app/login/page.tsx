@@ -16,16 +16,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 15000)
-      );
-      await Promise.race([signIn(email, password), timeout]);
+      await signIn(email, password);
       window.location.replace("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg === "timeout") {
-        setError("La conexión tardó demasiado. Verificá tu internet e intentá de nuevo.");
-      } else if (msg.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("user-not-found")) {
+      if (msg.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("user-not-found")) {
         setError("Email o contraseña incorrectos.");
       } else if (msg.includes("too-many-requests")) {
         setError("Demasiados intentos. Esperá unos minutos e intentá de nuevo.");
