@@ -7,7 +7,7 @@ import {
   sendEmailVerification,
   signOut as firebaseSignOut,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
 import { User, UserRole } from "@/types";
 
@@ -17,12 +17,13 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]     = useState<User | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,7 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...newUser,
       createdAt: serverTimestamp(),
     });
-    // Email de bienvenida/confirmación
     try { await sendEmailVerification(cred.user); } catch { /* no bloquea el registro */ }
     setUser({ id: cred.user.uid, ...newUser });
   }
@@ -85,8 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function updateUser(data: Partial<User>) {
+    if (!user) return;
+    const ref = doc(getFirebaseDb(), "users", user.id);
+    await updateDoc(ref, data as Record<string, unknown>);
+    setUser(prev => prev ? { ...prev, ...data } : prev);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

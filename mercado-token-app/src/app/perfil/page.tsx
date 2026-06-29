@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { getFirebaseDb } from "@/lib/firebase";
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { UserRole } from "@/types";
@@ -42,7 +43,7 @@ function FileUpload({ label, value, onChange, hint }: { label: string; value: st
 }
 
 export default function PerfilPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUser } = useAuth();
   const router = useRouter();
   const [step, setStep]         = useState(1);
   const [saved, setSaved]       = useState(false);
@@ -72,11 +73,12 @@ export default function PerfilPage() {
     if (!user || newRole === user.role || roleSaving) return;
     setRoleSaving(true);
     try {
-      await updateDoc(doc(getFirebaseDb(), "users", user!.id), { role: newRole });
+      await updateUser({ role: newRole });
       setRoleChanged(true);
       setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
-    } catch {
-      alert("Error al cambiar el rol. Intentá de nuevo.");
+    } catch (e) {
+      console.error("Error cambiando rol:", e);
+      alert("Error al cambiar el rol. Verificá tu conexión e intentá de nuevo.");
     } finally {
       setRoleSaving(false);
     }
@@ -87,7 +89,7 @@ export default function PerfilPage() {
     if (step < TOTAL_STEPS) { setStep(s => s + 1); return; }
     setSaving(true);
     try {
-      await updateDoc(doc(getFirebaseDb(), "users", user!.id), { kycStatus: "en_revision" });
+      await updateUser({ kycStatus: "en_revision" });
       setSaved(true);
     } catch {
       alert("Error al enviar. Intentá de nuevo.");
