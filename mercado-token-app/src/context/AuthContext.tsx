@@ -26,28 +26,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(getFirebaseAuth(), async (firebaseUser) => {
-      if (firebaseUser) {
-        const ref = doc(getFirebaseDb(), "users", firebaseUser.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          setUser({ id: firebaseUser.uid, ...snap.data() } as User);
+      try {
+        if (firebaseUser) {
+          const ref = doc(getFirebaseDb(), "users", firebaseUser.uid);
+          let snap;
+          try { snap = await getDoc(ref); } catch { snap = null; }
+
+          if (snap && snap.exists()) {
+            setUser({ id: firebaseUser.uid, ...snap.data() } as User);
+          } else {
+            const fallback = {
+              email: firebaseUser.email ?? "",
+              name: firebaseUser.email?.split("@")[0] ?? "Usuario",
+              role: "inversor" as const,
+              mktBalance: 500,
+              kycStatus: "pendiente" as const,
+              createdAt: new Date(),
+            };
+            try { await setDoc(ref, { ...fallback, createdAt: serverTimestamp() }); } catch { /* reglas pendientes */ }
+            setUser({ id: firebaseUser.uid, ...fallback });
+          }
         } else {
-          // Doc missing — create fallback profile so login doesn't loop
-          const fallback = {
-            email: firebaseUser.email ?? "",
-            name: firebaseUser.displayName ?? firebaseUser.email?.split("@")[0] ?? "Usuario",
-            role: "inversor" as const,
-            mktBalance: 500,
-            kycStatus: "pendiente" as const,
-            createdAt: serverTimestamp(),
-          };
-          await setDoc(ref, fallback);
-          setUser({ id: firebaseUser.uid, ...fallback, createdAt: new Date() } as User);
+          setUser(null);
         }
-      } else {
-        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsub;
   }, []);
