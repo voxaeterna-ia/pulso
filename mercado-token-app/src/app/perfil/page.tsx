@@ -7,9 +7,10 @@ import { getFirebaseDb } from "@/lib/firebase";
 import Navbar from "@/components/layout/Navbar";
 
 const KYC_STEPS = [
-  { id: 1, label: "Datos personales",      icon: "👤", desc: "Teléfono y país de residencia" },
-  { id: 2, label: "Documento de identidad", icon: "🪪", desc: "DNI, pasaporte o cédula" },
-  { id: 3, label: "Confirmación",           icon: "✅", desc: "Revisá y enviá tu solicitud" },
+  { id: 1, label: "Datos",      icon: "👤" },
+  { id: 2, label: "Documento",  icon: "🪪" },
+  { id: 3, label: "Selfie",     icon: "🤳" },
+  { id: 4, label: "Confirmar",  icon: "✅" },
 ];
 
 const KYC_STATUS_INFO = {
@@ -19,14 +20,34 @@ const KYC_STATUS_INFO = {
   rechazado:   { label: "Rechazado",   color: "#EF4444", icon: "❌", desc: "Hubo un problema con tu verificación. Contactanos." },
 };
 
+function FileUpload({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+  return (
+    <div>
+      <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>{label}</label>
+      {hint && <p className="text-xs mb-2" style={{ color: "#6B6358" }}>{hint}</p>}
+      <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition"
+             style={{ background: "#161616", border: `2px dashed ${value ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
+        <span className="text-2xl">{value ? "✅" : "📷"}</span>
+        <span className="text-sm font-medium" style={{ color: value ? "var(--copper)" : "#6B6358" }}>
+          {value || "Tocá para sacar la foto"}
+        </span>
+        <span className="text-xs" style={{ color: "#4a4a4a" }}>JPG, PNG · Máx 10MB</span>
+        <input type="file" accept="image/*" capture="environment" className="hidden"
+               onChange={e => onChange(e.target.files?.[0]?.name || "")} />
+      </label>
+    </div>
+  );
+}
+
 export default function PerfilPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [step, setStep]   = useState(1);
-  const [saved, setSaved] = useState(false);
+  const [step, setStep]     = useState(1);
+  const [saved, setSaved]   = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm]   = useState({
-    phone: "", country: "", docType: "DNI", docNumber: "", fileNameFront: "", fileNameBack: ""
+  const [form, setForm]     = useState({
+    phone: "", country: "", docType: "DNI", docNumber: "",
+    fileNameFront: "", fileNameBack: "", fileNameSelfie: ""
   });
 
   useEffect(() => {
@@ -41,10 +62,11 @@ export default function PerfilPage() {
   );
 
   const kycInfo = KYC_STATUS_INFO[user.kycStatus];
+  const TOTAL_STEPS = KYC_STEPS.length;
 
   async function handleKYC(e: React.FormEvent) {
     e.preventDefault();
-    if (step < 3) { setStep(s => s + 1); return; }
+    if (step < TOTAL_STEPS) { setStep(s => s + 1); return; }
     setSaving(true);
     try {
       await updateDoc(doc(getFirebaseDb(), "users", user!.id), { kycStatus: "en_revision" });
@@ -61,7 +83,6 @@ export default function PerfilPage() {
       <Navbar />
       <main className="pt-20 px-4 pb-16 max-w-2xl mx-auto">
 
-        {/* Header */}
         <div className="mt-6 mb-8">
           <h1 className="text-2xl font-bold text-white mb-1">Mi Perfil</h1>
           <p style={{ color: "#A1A1AA", fontSize: "0.9rem" }}>Datos de cuenta y verificación KYC</p>
@@ -89,8 +110,6 @@ export default function PerfilPage() {
               </div>
             </div>
           </div>
-
-          {/* Stats */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-lg" style={{ background: "#161616" }}>
               <div className="text-xs mb-1" style={{ color: "#6B6358" }}>BALANCE MKT</div>
@@ -101,26 +120,30 @@ export default function PerfilPage() {
               <div className="font-bold" style={{ color: kycInfo.color }}>{kycInfo.label}</div>
             </div>
           </div>
-
           <div className="mt-4 p-3 rounded-lg" style={{ background: `${kycInfo.color}0d`, border: `1px solid ${kycInfo.color}33` }}>
             <p className="text-sm" style={{ color: "#A1A1AA" }}>{kycInfo.desc}</p>
           </div>
         </div>
 
-        {/* KYC enviado */}
+        {/* Enviado */}
         {saved && (
           <div className="p-8 rounded-xl text-center" style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.3)" }}>
             <div className="text-5xl mb-4">✅</div>
             <div className="font-bold text-white text-lg mb-2">Verificación enviada</div>
-            <div className="text-sm" style={{ color: "#A1A1AA" }}>
-              Te notificaremos a <strong className="text-white">{user.email}</strong> en 24-48hs hábiles.
+            <div className="text-sm mb-4" style={{ color: "#A1A1AA" }}>
+              Revisaremos tu documentación en 24-48hs hábiles.
+            </div>
+            <div className="p-3 rounded-lg" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}>
+              <p className="text-sm" style={{ color: "#93C5FD" }}>
+                📧 Te enviaremos el resultado a <strong>{user.email}</strong>
+              </p>
             </div>
           </div>
         )}
 
-        {/* KYC ya en revisión o aprobado */}
+        {/* Ya verificado o en revisión */}
         {!saved && user.kycStatus !== "pendiente" && (
-          <div className="p-6 rounded-xl text-center" style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div className="p-8 rounded-xl text-center" style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="text-5xl mb-4">{kycInfo.icon}</div>
             <div className="font-bold text-white text-lg mb-2">KYC {kycInfo.label}</div>
             <div className="text-sm" style={{ color: "#A1A1AA" }}>{kycInfo.desc}</div>
@@ -131,28 +154,41 @@ export default function PerfilPage() {
         {!saved && user.kycStatus === "pendiente" && (
           <div className="p-6 rounded-xl" style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.07)" }}>
             <h2 className="font-bold text-white mb-1">Verificación de identidad</h2>
-            <p className="text-sm mb-6" style={{ color: "#6B6358" }}>Proceso seguro · Solo toma 2 minutos</p>
+            <p className="text-sm mb-6" style={{ color: "#6B6358" }}>🔒 Proceso seguro · {TOTAL_STEPS} pasos · ~3 minutos</p>
 
-            {/* Steps */}
-            <div className="flex items-start gap-0 mb-8">
+            {/* Progress bar */}
+            <div className="mb-2">
+              <div className="flex justify-between text-xs mb-2" style={{ color: "#6B6358" }}>
+                <span>Paso {step} de {TOTAL_STEPS}</span>
+                <span>{Math.round((step / TOTAL_STEPS) * 100)}% completado</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full" style={{ background: "#222" }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                     style={{ width: `${(step / TOTAL_STEPS) * 100}%`, background: "linear-gradient(90deg, #FF9A00, #D4AF37)" }} />
+              </div>
+            </div>
+
+            {/* Steps indicator */}
+            <div className="flex items-start mb-8 mt-5">
               {KYC_STEPS.map((s, i) => (
                 <div key={s.id} className="flex items-center flex-1">
                   <div className="flex flex-col items-center">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all"
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
                          style={{
                            background: step > s.id ? "#10B981" : step === s.id ? "linear-gradient(135deg, #FF9A00, #D4AF37)" : "#1a1a1a",
-                           color: step >= s.id ? "#000" : "#6B6358",
-                           border: step >= s.id ? "none" : "1px solid rgba(255,255,255,0.1)",
+                           color: step >= s.id ? "#000" : "#555",
+                           border: step < s.id ? "1px solid rgba(255,255,255,0.08)" : "none",
+                           fontSize: step > s.id ? "0.7rem" : "0.75rem",
                          }}>
-                      {step > s.id ? "✓" : s.id}
+                      {step > s.id ? "✓" : s.icon}
                     </div>
-                    <div className="mt-1.5 text-center" style={{ width: 72 }}>
-                      <div className="text-xs font-medium" style={{ color: step >= s.id ? "#fff" : "#6B6358", fontSize: "0.65rem" }}>{s.label}</div>
-                    </div>
+                    <span className="mt-1 text-center" style={{ color: step >= s.id ? "#A1A1AA" : "#444", fontSize: "0.6rem" }}>
+                      {s.label}
+                    </span>
                   </div>
                   {i < KYC_STEPS.length - 1 && (
-                    <div className="flex-1 h-px mx-1 mb-5 transition-all"
-                         style={{ background: step > s.id ? "#10B981" : "rgba(255,255,255,0.07)" }} />
+                    <div className="flex-1 h-px mx-1 mb-4 transition-all"
+                         style={{ background: step > s.id ? "#10B981" : "rgba(255,255,255,0.06)" }} />
                   )}
                 </div>
               ))}
@@ -160,10 +196,10 @@ export default function PerfilPage() {
 
             <form onSubmit={handleKYC} className="flex flex-col gap-4">
 
-              {/* Step 1 */}
+              {/* Paso 1 - Datos personales */}
               {step === 1 && (
                 <>
-                  <div className="p-4 rounded-lg mb-2" style={{ background: "rgba(255,154,0,0.06)", border: "1px solid rgba(255,154,0,0.15)" }}>
+                  <div className="p-4 rounded-lg" style={{ background: "rgba(255,154,0,0.06)", border: "1px solid rgba(255,154,0,0.15)" }}>
                     <p className="text-sm font-semibold" style={{ color: "var(--copper)" }}>👤 Datos personales</p>
                     <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Ingresá tu teléfono y país de residencia</p>
                   </div>
@@ -190,12 +226,12 @@ export default function PerfilPage() {
                 </>
               )}
 
-              {/* Step 2 */}
+              {/* Paso 2 - Documento */}
               {step === 2 && (
                 <>
-                  <div className="p-4 rounded-lg mb-2" style={{ background: "rgba(255,154,0,0.06)", border: "1px solid rgba(255,154,0,0.15)" }}>
+                  <div className="p-4 rounded-lg" style={{ background: "rgba(255,154,0,0.06)", border: "1px solid rgba(255,154,0,0.15)" }}>
                     <p className="text-sm font-semibold" style={{ color: "var(--copper)" }}>🪪 Documento de identidad</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Ingresá los datos de tu documento oficial</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Fotografiá ambas caras de tu documento</p>
                   </div>
                   <div>
                     <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Tipo de documento</label>
@@ -222,58 +258,80 @@ export default function PerfilPage() {
                            onFocus={e => e.target.style.borderColor = "var(--copper)"}
                            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
                   </div>
-                  <div>
-                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Foto del documento — Frente</label>
-                    <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition mb-3"
-                           style={{ background: "#161616", border: `2px dashed ${form.fileNameFront ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
-                      <span className="text-2xl">{form.fileNameFront ? "✅" : "📷"}</span>
-                      <span className="text-sm" style={{ color: form.fileNameFront ? "var(--copper)" : "#6B6358" }}>
-                        {form.fileNameFront || "Subí el frente del documento"}
-                      </span>
-                      <input type="file" accept="image/*" capture="environment" className="hidden"
-                             onChange={e => setForm(p => ({ ...p, fileNameFront: e.target.files?.[0]?.name || "" }))} />
-                    </label>
-                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Foto del documento — Reverso</label>
-                    <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition"
-                           style={{ background: "#161616", border: `2px dashed ${form.fileNameBack ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
-                      <span className="text-2xl">{form.fileNameBack ? "✅" : "📷"}</span>
-                      <span className="text-sm" style={{ color: form.fileNameBack ? "var(--copper)" : "#6B6358" }}>
-                        {form.fileNameBack || "Subí el reverso del documento"}
-                      </span>
-                      <input type="file" accept="image/*" capture="environment" className="hidden"
-                             onChange={e => setForm(p => ({ ...p, fileNameBack: e.target.files?.[0]?.name || "" }))} />
-                    </label>
-                  </div>
+                  <FileUpload label="Frente del documento" value={form.fileNameFront}
+                              hint="Asegurate que el texto sea legible y esté bien iluminado"
+                              onChange={v => setForm(p => ({ ...p, fileNameFront: v }))} />
+                  <FileUpload label="Reverso del documento" value={form.fileNameBack}
+                              onChange={v => setForm(p => ({ ...p, fileNameBack: v }))} />
                 </>
               )}
 
-              {/* Step 3 */}
+              {/* Paso 3 - Selfie */}
               {step === 3 && (
                 <>
-                  <div className="p-4 rounded-lg mb-2" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                    <p className="text-sm font-semibold" style={{ color: "#10B981" }}>✅ Todo listo para enviar</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Revisá los datos antes de confirmar</p>
+                  <div className="p-4 rounded-lg" style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.2)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "#A78BFA" }}>🤳 Selfie con documento</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Para confirmar que sos vos quien presenta el documento</p>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <p className="text-sm font-semibold text-white mb-3">Instrucciones:</p>
+                    <ul className="space-y-2">
+                      {[
+                        "Sostené tu DNI/pasaporte junto a tu cara",
+                        "Asegurate que tu cara y el documento sean visibles",
+                        "Buscá buena iluminación, evitá contraluz",
+                        "No uses anteojos de sol ni sombrero",
+                      ].map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "#A1A1AA" }}>
+                          <span style={{ color: "var(--copper)", flexShrink: 0 }}>→</span> {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <FileUpload
+                    label="Selfie sosteniendo el documento"
+                    value={form.fileNameSelfie}
+                    hint="Usá la cámara frontal de tu celular"
+                    onChange={v => setForm(p => ({ ...p, fileNameSelfie: v }))}
+                  />
+                  {!form.fileNameSelfie && (
+                    <p className="text-xs text-center" style={{ color: "#EF4444" }}>
+                      * La selfie con documento es obligatoria para completar la verificación
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Paso 4 - Confirmación */}
+              {step === 4 && (
+                <>
+                  <div className="p-4 rounded-lg" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "#10B981" }}>✅ Revisá antes de enviar</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Verificá que todos los datos sean correctos</p>
                   </div>
                   <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
                     {[
-                      { label: "Nombre", value: user.name },
-                      { label: "Email", value: user.email },
-                      { label: "Teléfono", value: form.phone },
-                      { label: "País", value: form.country },
-                      { label: "Documento", value: `${form.docType} · ${form.docNumber}` },
-                      { label: "DNI Frente", value: form.fileNameFront || "No adjuntado" },
-                      { label: "DNI Reverso", value: form.fileNameBack || "No adjuntado" },
+                      { label: "Nombre",       value: user.name },
+                      { label: "Email",         value: user.email },
+                      { label: "Teléfono",      value: form.phone },
+                      { label: "País",          value: form.country },
+                      { label: "Documento",     value: `${form.docType} · ${form.docNumber}` },
+                      { label: "Doc. Frente",   value: form.fileNameFront  ? "✅ Adjuntado" : "❌ Faltante" },
+                      { label: "Doc. Reverso",  value: form.fileNameBack   ? "✅ Adjuntado" : "❌ Faltante" },
+                      { label: "Selfie",        value: form.fileNameSelfie ? "✅ Adjuntado" : "❌ Faltante" },
                     ].map((row, i) => (
                       <div key={row.label} className="flex justify-between px-4 py-3"
                            style={{ background: i % 2 === 0 ? "#111" : "#161616" }}>
                         <span className="text-sm" style={{ color: "#6B6358" }}>{row.label}</span>
-                        <span className="text-sm font-medium text-white">{row.value}</span>
+                        <span className="text-sm font-medium" style={{
+                          color: row.value.includes("❌") ? "#EF4444" : row.value.includes("✅") ? "#10B981" : "#fff"
+                        }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
                   <div className="p-4 rounded-lg" style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)" }}>
-                    <p className="text-xs" style={{ color: "#A1A1AA" }}>
-                      🔒 Tus datos están protegidos. El proceso de revisión toma 24-48hs hábiles y recibirás una notificación por email.
+                    <p className="text-xs" style={{ color: "#93C5FD" }}>
+                      📧 Recibirás el resultado a <strong>{user.email}</strong> en 24-48hs hábiles. Tus datos están cifrados y protegidos.
                     </p>
                   </div>
                 </>
@@ -287,10 +345,13 @@ export default function PerfilPage() {
                     ← Volver
                   </button>
                 )}
-                <button type="submit" disabled={saving}
+                <button type="submit" disabled={saving || (step === 3 && !form.fileNameSelfie)}
                         className="flex-1 py-3 rounded-lg font-bold text-sm transition"
-                        style={{ background: saving ? "#555" : "linear-gradient(135deg, #FF9A00, #D4AF37)", color: "#000" }}>
-                  {saving ? "Enviando..." : step < 3 ? "Continuar →" : "Enviar verificación"}
+                        style={{
+                          background: (saving || (step === 3 && !form.fileNameSelfie)) ? "#333" : "linear-gradient(135deg, #FF9A00, #D4AF37)",
+                          color: (saving || (step === 3 && !form.fileNameSelfie)) ? "#666" : "#000"
+                        }}>
+                  {saving ? "Enviando..." : step < TOTAL_STEPS ? "Continuar →" : "Enviar verificación"}
                 </button>
               </div>
             </form>
