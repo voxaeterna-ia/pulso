@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getFirebaseAdminApp, getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,27 @@ function extractDataUrl(base64: string): { mediaType: string; data: string } | n
 }
 
 export async function POST(request: NextRequest) {
+  if (!getFirebaseAdminApp()) {
+    return NextResponse.json(
+      { error: "Servicio de verificación no configurado en el servidor" },
+      { status: 503 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization") ?? "";
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!idToken) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  let uid: string;
+  try {
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    uid = decoded.uid;
+  } catch {
+    return NextResponse.json({ error: "Sesión inválida o expirada" }, { status: 401 });
+  }
+
   let body: Partial<KycValidateRequest>;
   try {
     body = await request.json();
@@ -178,6 +200,23 @@ export async function POST(request: NextRequest) {
     motivo = motivos.join("; ");
   }
 
+  const validatedAt = new Date().toISOString();
+  const kycStatus = aprobado ? "aprobado" : "en_revision";
+
+  // Única escritura autorizada de kycStatus/kycValidatedAt: el cliente no
+  // puede setear estos campos directamente (ver firestore.rules).
+  try {
+    await getAdminDb().collection("users").doc(uid).set(
+      { kycStatus, kycValidatedAt: validatedAt },
+      { merge: true }
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "La validación se completó pero no se pudo guardar el resultado. Intentá de nuevo." },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({
     documentoCoincide: checks.documentoCoincide,
     numeroCoincideFrenteDorso: checks.numeroCoincideFrenteDorso,
@@ -185,6 +224,7 @@ export async function POST(request: NextRequest) {
     anteojosOMascaraDetectado,
     aprobado,
     motivo,
-    validatedAt: new Date().toISOString(),
+    kycStatus,
+    validatedAt,
   });
 }

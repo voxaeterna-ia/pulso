@@ -36,6 +36,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
+  setLocalUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -213,8 +214,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Actualiza solo el estado local/cache, sin escribir en Firestore.
+  // Usado cuando un endpoint server-side (ej. validación KYC) ya persistió
+  // el campo por su cuenta y solo necesitamos reflejarlo en la UI.
+  function setLocalUser(data: Partial<User>) {
+    if (!user) return;
+    setUserAndCache({ ...user, ...data });
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, updateUser, setLocalUser }}>
       {children}
     </AuthContext.Provider>
   );

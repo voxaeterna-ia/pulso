@@ -1,11 +1,21 @@
 rules_version = '2';
 service cloud.firestore.firebase.app {
   match /databases/{database}/documents {
-    // Solo se persisten kycStatus y kycValidatedAt (resultado de la
-    // verificación). Las imágenes del documento/selfie y los datos
+    // kycStatus y kycValidatedAt solo pueden ser escritos por el backend
+    // (endpoint /api/kyc/validate vía Firebase Admin SDK, que no pasa por
+    // estas reglas). El cliente puede crear su doc con kycStatus inicial
+    // "pendiente", pero no puede modificarlo ni el de otros campos KYC
+    // directamente. Las imágenes del documento/selfie y los datos
     // extraídos de ellas nunca se escriben en Firestore.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      allow create: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.kycStatus == "pendiente";
+
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data)
+                          .affectedKeys().hasAny(["kycStatus", "kycValidatedAt"]);
     }
     match /assets/{assetId} {
       allow read: if request.auth != null;

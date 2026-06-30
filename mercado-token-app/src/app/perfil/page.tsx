@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
-import { getFirebaseDb } from "@/lib/firebase";
+import { getFirebaseDb, getFirebaseAuth } from "@/lib/firebase";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -104,7 +104,7 @@ function SmartUpload({
 }
 
 export default function PerfilPage() {
-  const { user, loading, updateUser } = useAuth();
+  const { user, loading, updateUser, setLocalUser } = useAuth();
   const router = useRouter();
   const [step, setStep]         = useState(1);
   const [saved, setSaved]       = useState(false);
@@ -169,9 +169,15 @@ export default function PerfilPage() {
         fileToDataUrl(files.selfie),
       ]);
 
+      const idToken = await getFirebaseAuth().currentUser?.getIdToken().catch(() => null);
+      if (!idToken) {
+        setKycError("Tu sesión expiró. Volvé a iniciar sesión e intentá de nuevo.");
+        return;
+      }
+
       const res = await fetch("/api/kyc/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({
           nombres: form.nombres,
           apellidos: form.apellidos,
@@ -203,12 +209,10 @@ export default function PerfilPage() {
         );
       }
 
-      // Solo persistimos el resultado (estado + fecha), nunca los datos
-      // extraídos del documento ni las imágenes.
-      await updateUser({
-        kycStatus: result.aprobado ? "aprobado" : "en_revision",
-        kycValidatedAt: new Date().toISOString(),
-      });
+      // El endpoint ya persistió kycStatus/kycValidatedAt en Firestore vía
+      // Admin SDK (el cliente no tiene permiso para escribir esos campos,
+      // ver firestore.rules). Acá solo reflejamos el resultado en la UI.
+      setLocalUser({ kycStatus: result.kycStatus, kycValidatedAt: result.validatedAt });
       setSaved(true);
     } catch {
       setKycError("Error al enviar. Verificá tu conexión e intentá de nuevo.");
