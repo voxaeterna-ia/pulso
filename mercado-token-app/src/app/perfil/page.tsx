@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { getFirebaseDb } from "@/lib/firebase";
+
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { UserRole } from "@/types";
 
 const KYC_STEPS = [
   { id: 1, label: "Datos",      icon: "👤" },
@@ -20,32 +23,95 @@ const KYC_STATUS_INFO = {
   rechazado:   { label: "Rechazado",   color: "#EF4444", icon: "❌", desc: "Hubo un problema con tu verificación. Contactanos." },
 };
 
-function FileUpload({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+type ValidateMode = "document" | "face" | "none";
+
+function SmartUpload({
+  label, value, onChange, hint, mode = "none", capture = "environment",
+}: {
+  label: string;
+  value: string;
+  onChange: (name: string) => void;
+  hint?: string;
+  mode?: ValidateMode;
+  capture?: "environment" | "user";
+}) {
+  const [validating, setValidating] = useState(false);
+  const [error, setError]           = useState("");
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setValidating(true);
+    onChange("");
+
+    try {
+      if (mode === "document") {
+        const { validateDocument } = await import("@/lib/services/imageValidation");
+        const result = await validateDocument(file);
+        if (!result.valid) { setError(result.error ?? "Imagen inválida."); setValidating(false); return; }
+      }
+      if (mode === "face") {
+        const { validateFace } = await import("@/lib/services/imageValidation");
+        const result = await validateFace(file);
+        if (!result.valid) { setError(result.error ?? "No se detectó un rostro válido."); setValidating(false); return; }
+      }
+      onChange(file.name);
+    } catch {
+      setError("Error al procesar la imagen. Intentá de nuevo.");
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  const state = validating ? "validating" : value ? "ok" : error ? "error" : "empty";
+  const borderColor = state === "ok" ? "#FF9A00" : state === "error" ? "#EF4444" : "rgba(255,255,255,0.1)";
+
   return (
     <div>
       <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>{label}</label>
       {hint && <p className="text-xs mb-2" style={{ color: "#6B6358" }}>{hint}</p>}
+
       <label className="flex flex-col items-center justify-center gap-2 w-full py-5 rounded-lg cursor-pointer transition"
-             style={{ background: "#161616", border: `2px dashed ${value ? "var(--copper)" : "rgba(255,255,255,0.1)"}` }}>
-        <span className="text-2xl">{value ? "✅" : "📷"}</span>
-        <span className="text-sm font-medium" style={{ color: value ? "var(--copper)" : "#6B6358" }}>
-          {value || "Tocá para sacar la foto"}
+             style={{ background: "#161616", border: `2px dashed ${borderColor}`, opacity: validating ? 0.7 : 1 }}>
+        <span className="text-2xl">
+          {state === "validating" ? "⏳" : state === "ok" ? "✅" : state === "error" ? "❌" : "📷"}
         </span>
-        <span className="text-xs" style={{ color: "#4a4a4a" }}>JPG, PNG · Máx 10MB</span>
-        <input type="file" accept="image/*" capture="environment" className="hidden"
-               onChange={e => onChange(e.target.files?.[0]?.name || "")} />
+        <span className="text-sm font-medium text-center px-2" style={{ color: state === "ok" ? "#FF9A00" : state === "error" ? "#EF4444" : "#6B6358" }}>
+          {state === "validating" ? "Validando imagen..." : state === "ok" ? value : state === "error" ? "Imagen rechazada" : "Tocá para sacar la foto"}
+        </span>
+        {state !== "validating" && (
+          <span className="text-xs" style={{ color: "#4a4a4a" }}>
+            {mode === "document" ? "JPG, PNG · DNI horizontal · Máx 20MB" :
+             mode === "face"     ? "JPG, PNG · Rostro visible · Máx 20MB" :
+             "JPG, PNG · Máx 20MB"}
+          </span>
+        )}
+        <input type="file" accept="image/jpeg,image/png,image/webp" capture={capture}
+               className="hidden" onChange={handleFile} />
       </label>
+
+      {error && (
+        <div className="mt-2 p-3 rounded-lg text-xs flex items-start gap-2"
+             style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#FCA5A5" }}>
+          <span className="flex-shrink-0">⚠️</span>
+          <span>{error} <button className="underline ml-1" style={{ color: "#FF9A00" }}
+                onClick={() => setError("")}>Intentar de nuevo</button></span>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function PerfilPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, updateUser } = useAuth();
   const router = useRouter();
-  const [step, setStep]     = useState(1);
-  const [saved, setSaved]   = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm]     = useState({
+  const [step, setStep]         = useState(1);
+  const [saved, setSaved]       = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleChanged, setRoleChanged] = useState(false);
+  const [form, setForm]         = useState({
     phone: "", country: "", docType: "DNI", docNumber: "",
     fileNameFront: "", fileNameBack: "", fileNameSelfie: ""
   });
@@ -64,12 +130,27 @@ export default function PerfilPage() {
   const kycInfo = KYC_STATUS_INFO[user.kycStatus];
   const TOTAL_STEPS = KYC_STEPS.length;
 
+  async function handleRoleChange(newRole: UserRole) {
+    if (!user || newRole === user.role || roleSaving) return;
+    setRoleSaving(true);
+    try {
+      await updateUser({ role: newRole });
+      setRoleChanged(true);
+      setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
+    } catch (e) {
+      console.error("Error cambiando rol:", e);
+      alert("Error al cambiar el rol. Verificá tu conexión e intentá de nuevo.");
+    } finally {
+      setRoleSaving(false);
+    }
+  }
+
   async function handleKYC(e: React.FormEvent) {
     e.preventDefault();
     if (step < TOTAL_STEPS) { setStep(s => s + 1); return; }
     setSaving(true);
     try {
-      await updateDoc(doc(getFirebaseDb(), "users", user!.id), { kycStatus: "en_revision" });
+      await updateUser({ kycStatus: "en_revision" });
       setSaved(true);
     } catch {
       alert("Error al enviar. Intentá de nuevo.");
@@ -122,6 +203,74 @@ export default function PerfilPage() {
           </div>
           <div className="mt-4 p-3 rounded-lg" style={{ background: `${kycInfo.color}0d`, border: `1px solid ${kycInfo.color}33` }}>
             <p className="text-sm" style={{ color: "#A1A1AA" }}>{kycInfo.desc}</p>
+          </div>
+        </div>
+
+        {/* Selector de rol */}
+        <div className="p-6 rounded-xl mb-6" style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <h2 className="font-bold text-white mb-1">Tipo de cuenta</h2>
+          <p className="text-sm mb-5" style={{ color: "#6B6358" }}>
+            Podés cambiar tu rol en cualquier momento. El cambio aplica de inmediato.
+          </p>
+
+          {roleChanged && (
+            <div className="mb-4 p-3 rounded-lg text-sm text-center"
+                 style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", color: "#10B981" }}>
+              ✅ Rol actualizado. Redirigiendo al panel...
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3">
+            {([
+              {
+                role: "inversor" as UserRole,
+                icon: "🌍",
+                title: "Inversor",
+                desc: "Explorá activos tokenizados y construí tu portafolio de inversión.",
+              },
+              {
+                role: "emisor" as UserRole,
+                icon: "🏢",
+                title: "Emisor de activos",
+                desc: "Cargá tus activos reales para tokenizarlos en la plataforma y acceder a inversores.",
+              },
+              {
+                role: "invitado" as UserRole,
+                icon: "👀",
+                title: "Invitado",
+                desc: "Explorá la plataforma sin compromisos. Limitado a ver el marketplace.",
+              },
+            ] as { role: UserRole; icon: string; title: string; desc: string }[]).map(opt => {
+              const isActive = user.role === opt.role;
+              return (
+                <button key={opt.role} onClick={() => handleRoleChange(opt.role)} disabled={roleSaving || roleChanged}
+                        className="p-4 rounded-xl text-left transition w-full"
+                        style={{
+                          background: isActive ? "rgba(255,154,0,0.08)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${isActive ? "rgba(255,154,0,0.35)" : "rgba(255,255,255,0.07)"}`,
+                          cursor: isActive ? "default" : "pointer",
+                          opacity: roleSaving ? 0.6 : 1,
+                        }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{opt.icon}</span>
+                      <div>
+                        <div className="font-semibold text-sm" style={{ color: isActive ? "#FF9A00" : "#fff" }}>
+                          {opt.title}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: "#6B6358" }}>{opt.desc}</div>
+                      </div>
+                    </div>
+                    {isActive && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ml-3"
+                            style={{ background: "rgba(255,154,0,0.15)", color: "#FF9A00", border: "1px solid rgba(255,154,0,0.3)" }}>
+                        Actual
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -258,10 +407,11 @@ export default function PerfilPage() {
                            onFocus={e => e.target.style.borderColor = "var(--copper)"}
                            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
                   </div>
-                  <FileUpload label="Frente del documento" value={form.fileNameFront}
-                              hint="Asegurate que el texto sea legible y esté bien iluminado"
+                  <SmartUpload label="Frente del documento" value={form.fileNameFront} mode="document"
+                              hint="Fotografiá el frente del DNI en posición horizontal. El texto debe ser legible."
                               onChange={v => setForm(p => ({ ...p, fileNameFront: v }))} />
-                  <FileUpload label="Reverso del documento" value={form.fileNameBack}
+                  <SmartUpload label="Reverso del documento" value={form.fileNameBack} mode="document"
+                              hint="Fotografiá el reverso del DNI en posición horizontal."
                               onChange={v => setForm(p => ({ ...p, fileNameBack: v }))} />
                 </>
               )}
@@ -288,10 +438,12 @@ export default function PerfilPage() {
                       ))}
                     </ul>
                   </div>
-                  <FileUpload
+                  <SmartUpload
                     label="Selfie sosteniendo el documento"
                     value={form.fileNameSelfie}
-                    hint="Usá la cámara frontal de tu celular"
+                    mode="face"
+                    capture="user"
+                    hint="Usá la cámara frontal. Tu cara y el DNI deben ser visibles."
                     onChange={v => setForm(p => ({ ...p, fileNameSelfie: v }))}
                   />
                   {!form.fileNameSelfie && (
@@ -359,6 +511,7 @@ export default function PerfilPage() {
         )}
 
       </main>
+      <Footer />
     </div>
   );
 }
