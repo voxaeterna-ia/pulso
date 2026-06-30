@@ -1,3 +1,13 @@
+// ─── Conversión a data URL (para enviar al endpoint de validación KYC) ────────
+export function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── Validación de documento de identidad ─────────────────────────────────────
 // El DNI argentino y la mayoría de documentos internacionales tienen
 // proporción ~1.586:1 (85.6mm × 54mm, estándar ISO/IEC 7810 ID-1)

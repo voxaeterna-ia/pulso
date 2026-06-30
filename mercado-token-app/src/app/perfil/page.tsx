@@ -109,6 +109,7 @@ export default function PerfilPage() {
   const [step, setStep]         = useState(1);
   const [saved, setSaved]       = useState(false);
   const [saving, setSaving]     = useState(false);
+  const [kycError, setKycError] = useState("");
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleChanged, setRoleChanged] = useState(false);
   const [form, setForm]         = useState({
@@ -154,12 +155,53 @@ export default function PerfilPage() {
   async function handleKYC(e: React.FormEvent) {
     e.preventDefault();
     if (step < TOTAL_STEPS) { setStep(s => s + 1); return; }
+    if (!files.front || !files.back || !files.selfie) {
+      setKycError("Faltan una o más imágenes. Volvé al paso de documento/selfie.");
+      return;
+    }
     setSaving(true);
+    setKycError("");
     try {
-      await updateUser({ kycStatus: "en_revision" });
+      const { fileToDataUrl } = await import("@/lib/services/imageValidation");
+      const [frenteDniBase64, dorsoDniBase64, selfieBase64] = await Promise.all([
+        fileToDataUrl(files.front),
+        fileToDataUrl(files.back),
+        fileToDataUrl(files.selfie),
+      ]);
+
+      const res = await fetch("/api/kyc/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombres: form.nombres,
+          apellidos: form.apellidos,
+          fechaNacimiento: form.fechaNacimiento,
+          numeroDocumento: form.docNumber,
+          frenteDniBase64,
+          dorsoDniBase64,
+          selfieBase64,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setKycError(result.error ?? "No se pudo completar la validación. Intentá de nuevo.");
+        return;
+      }
+
+      if (!result.aprobado) {
+        setKycError(
+          "No pudimos verificar tu identidad automáticamente" +
+            (result.motivo ? `: ${result.motivo}.` : ".") +
+            " Tu solicitud quedará en revisión manual."
+        );
+      }
+
+      await updateUser({ kycStatus: result.aprobado ? "aprobado" : "en_revision" });
       setSaved(true);
     } catch {
-      alert("Error al enviar. Intentá de nuevo.");
+      setKycError("Error al enviar. Verificá tu conexión e intentá de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -524,6 +566,14 @@ export default function PerfilPage() {
                     </p>
                   </div>
                 </>
+              )}
+
+              {kycError && (
+                <div className="p-3 rounded-lg text-xs flex items-start gap-2"
+                     style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "#FCA5A5" }}>
+                  <span className="flex-shrink-0">⚠️</span>
+                  <span>{kycError}</span>
+                </div>
               )}
 
               <div className="flex gap-3 mt-2">
