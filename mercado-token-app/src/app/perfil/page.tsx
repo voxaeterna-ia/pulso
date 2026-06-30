@@ -185,6 +185,11 @@ export default function PerfilPage() {
 
       const result = await res.json();
 
+      // Las imágenes y su data URL solo viven en memoria del navegador durante
+      // el envío; nunca se escriben en Firestore ni en Storage. Las soltamos
+      // apenas tenemos la respuesta para minimizar su tiempo de vida.
+      setFiles({ front: null, back: null, selfie: null });
+
       if (!res.ok) {
         setKycError(result.error ?? "No se pudo completar la validación. Intentá de nuevo.");
         return;
@@ -198,7 +203,12 @@ export default function PerfilPage() {
         );
       }
 
-      await updateUser({ kycStatus: result.aprobado ? "aprobado" : "en_revision" });
+      // Solo persistimos el resultado (estado + fecha), nunca los datos
+      // extraídos del documento ni las imágenes.
+      await updateUser({
+        kycStatus: result.aprobado ? "aprobado" : "en_revision",
+        kycValidatedAt: new Date().toISOString(),
+      });
       setSaved(true);
     } catch {
       setKycError("Error al enviar. Verificá tu conexión e intentá de nuevo.");

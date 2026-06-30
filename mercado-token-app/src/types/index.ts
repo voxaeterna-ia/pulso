@@ -9,6 +9,7 @@ export interface User {
   role: UserRole;
   mktBalance: number;
   kycStatus: "pendiente" | "en_revision" | "aprobado" | "rechazado";
+  kycValidatedAt?: string; // ISO date — solo el resultado, nunca datos extraídos del documento
   createdAt: Date;
   phone?: string;
   country?: string;
