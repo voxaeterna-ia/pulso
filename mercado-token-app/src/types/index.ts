@@ -33,6 +33,30 @@ export interface InvestorProfile {
   kycCompletedAt?: Date;
 }
 
+// ─── Verificación de identidad (KYC) ─────────────────────────────────────────
+// Datos personales declarados por el usuario, a contrastar contra el
+// contenido del documento mediante validación por IA (no se persisten
+// las imágenes crudas; solo el resultado de la validación).
+export interface KycPersonalData {
+  nombres: string;
+  apellidos: string;
+  fechaNacimiento: string; // ISO date (yyyy-mm-dd)
+  docType: "DNI" | "Pasaporte" | "Cédula";
+  docNumber: string;
+}
+
+export type KycCheckResult = "ok" | "no_coincide" | "no_legible" | "no_detectado";
+
+export interface KycValidationResult {
+  documentoCoincide: KycCheckResult;
+  numeroCoincideFrenteDorso: KycCheckResult;
+  rostroDetectado: KycCheckResult;
+  anteojosOMascaraDetectado: boolean;
+  aprobado: boolean;
+  motivo?: string;
+  validatedAt: Date;
+}
+
 // ─── Sectores / Tipos de activo ───────────────────────────────────────────────
 export type AssetType =
   | "real-estate"

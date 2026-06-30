@@ -30,7 +30,7 @@ function SmartUpload({
 }: {
   label: string;
   value: string;
-  onChange: (name: string) => void;
+  onChange: (name: string, file: File | null) => void;
   hint?: string;
   mode?: ValidateMode;
   capture?: "environment" | "user";
@@ -43,7 +43,7 @@ function SmartUpload({
     if (!file) return;
     setError("");
     setValidating(true);
-    onChange("");
+    onChange("", null);
 
     try {
       if (mode === "document") {
@@ -56,7 +56,7 @@ function SmartUpload({
         const result = await validateFace(file);
         if (!result.valid) { setError(result.error ?? "No se detectó un rostro válido."); setValidating(false); return; }
       }
-      onChange(file.name);
+      onChange(file.name, file);
     } catch {
       setError("Error al procesar la imagen. Intentá de nuevo.");
     } finally {
@@ -112,8 +112,14 @@ export default function PerfilPage() {
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleChanged, setRoleChanged] = useState(false);
   const [form, setForm]         = useState({
-    phone: "", country: "", docType: "DNI", docNumber: "",
+    phone: "", country: "",
+    nombres: "", apellidos: "", fechaNacimiento: "",
+    docType: "DNI", docNumber: "",
     fileNameFront: "", fileNameBack: "", fileNameSelfie: ""
+  });
+  // Archivos reales (no persistidos en estado serializable) para envío a validación KYC
+  const [files, setFiles] = useState<{ front: File | null; back: File | null; selfie: File | null }>({
+    front: null, back: null, selfie: null,
   });
 
   useEffect(() => {
@@ -352,6 +358,35 @@ export default function PerfilPage() {
                     <p className="text-sm font-semibold" style={{ color: "var(--copper)" }}>👤 Datos personales</p>
                     <p className="text-xs mt-0.5" style={{ color: "#6B6358" }}>Ingresá tu teléfono y país de residencia</p>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Nombres</label>
+                      <input type="text" required placeholder="Como figuran en tu documento"
+                             value={form.nombres} onChange={e => setForm(p => ({ ...p, nombres: e.target.value }))}
+                             className="w-full px-4 py-3 rounded-lg text-white text-sm outline-none"
+                             style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}
+                             onFocus={e => e.target.style.borderColor = "var(--copper)"}
+                             onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Apellidos</label>
+                      <input type="text" required placeholder="Como figuran en tu documento"
+                             value={form.apellidos} onChange={e => setForm(p => ({ ...p, apellidos: e.target.value }))}
+                             className="w-full px-4 py-3 rounded-lg text-white text-sm outline-none"
+                             style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}
+                             onFocus={e => e.target.style.borderColor = "var(--copper)"}
+                             onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Fecha de nacimiento</label>
+                    <input type="date" required
+                           value={form.fechaNacimiento} onChange={e => setForm(p => ({ ...p, fechaNacimiento: e.target.value }))}
+                           className="w-full px-4 py-3 rounded-lg text-white text-sm outline-none"
+                           style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}
+                           onFocus={e => e.target.style.borderColor = "var(--copper)"}
+                           onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+                  </div>
                   <div>
                     <label className="block text-sm mb-1.5 font-medium" style={{ color: "#A1A1AA" }}>Teléfono</label>
                     <input type="tel" required placeholder="+54 11 1234-5678"
@@ -409,10 +444,10 @@ export default function PerfilPage() {
                   </div>
                   <SmartUpload label="Frente del documento" value={form.fileNameFront} mode="document"
                               hint="Fotografiá el frente del DNI en posición horizontal. El texto debe ser legible."
-                              onChange={v => setForm(p => ({ ...p, fileNameFront: v }))} />
+                              onChange={(v, f) => { setForm(p => ({ ...p, fileNameFront: v })); setFiles(p => ({ ...p, front: f })); }} />
                   <SmartUpload label="Reverso del documento" value={form.fileNameBack} mode="document"
                               hint="Fotografiá el reverso del DNI en posición horizontal."
-                              onChange={v => setForm(p => ({ ...p, fileNameBack: v }))} />
+                              onChange={(v, f) => { setForm(p => ({ ...p, fileNameBack: v })); setFiles(p => ({ ...p, back: f })); }} />
                 </>
               )}
 
@@ -443,8 +478,8 @@ export default function PerfilPage() {
                     value={form.fileNameSelfie}
                     mode="face"
                     capture="user"
-                    hint="Usá la cámara frontal. Tu cara y el DNI deben ser visibles."
-                    onChange={v => setForm(p => ({ ...p, fileNameSelfie: v }))}
+                    hint="Usá la cámara frontal. Tu cara y el DNI deben ser visibles. No uses anteojos ni máscara."
+                    onChange={(v, f) => { setForm(p => ({ ...p, fileNameSelfie: v })); setFiles(p => ({ ...p, selfie: f })); }}
                   />
                   {!form.fileNameSelfie && (
                     <p className="text-xs text-center" style={{ color: "#EF4444" }}>
@@ -463,7 +498,9 @@ export default function PerfilPage() {
                   </div>
                   <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
                     {[
-                      { label: "Nombre",       value: user.name },
+                      { label: "Nombres",       value: form.nombres },
+                      { label: "Apellidos",     value: form.apellidos },
+                      { label: "Fecha nacimiento", value: form.fechaNacimiento },
                       { label: "Email",         value: user.email },
                       { label: "Teléfono",      value: form.phone },
                       { label: "País",          value: form.country },
