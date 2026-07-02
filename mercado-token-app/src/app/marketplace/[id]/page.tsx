@@ -216,6 +216,21 @@ export default function AssetDetailPage() {
               </div>
             )}
 
+            {user.role === "invitado" && (
+              <div className="p-5 rounded-xl" style={{ background: "#111", border: "1px solid rgba(255,154,0,0.2)" }}>
+                <div className="text-2xl mb-2">🔎</div>
+                <h3 className="font-bold text-white mb-2 text-sm">Modo Explorador</h3>
+                <p className="text-xs mb-4" style={{ color: "#A1A1AA" }}>
+                  Estás explorando el marketplace. Para invertir en este activo necesitás cambiar tu rol y completar la verificación de identidad.
+                </p>
+                <Link href="/perfil"
+                      className="block w-full text-center py-2.5 rounded-lg font-semibold text-sm"
+                      style={{ background: "rgba(255,154,0,0.1)", color: "#FF9A00", border: "1px solid rgba(255,154,0,0.3)", textDecoration: "none" }}>
+                  Verificar identidad →
+                </Link>
+              </div>
+            )}
+
           </div>
         </div>
 
