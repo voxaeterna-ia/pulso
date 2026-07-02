@@ -112,6 +112,7 @@ export default function PerfilPage() {
   const [kycError, setKycError] = useState("");
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleChanged, setRoleChanged] = useState(false);
+  const [roleError, setRoleError] = useState("");
   const [form, setForm]         = useState({
     phone: "", country: "",
     nombres: "", apellidos: "", fechaNacimiento: "",
@@ -140,13 +141,13 @@ export default function PerfilPage() {
   async function handleRoleChange(newRole: UserRole) {
     if (!user || newRole === user.role || roleSaving) return;
     setRoleSaving(true);
+    setRoleError("");
     try {
       await updateUser({ role: newRole });
       setRoleChanged(true);
       setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
-    } catch (e) {
-      console.error("Error cambiando rol:", e);
-      alert("Error al cambiar el rol. Verificá tu conexión e intentá de nuevo.");
+    } catch {
+      setRoleError("Error al cambiar el rol. Verificá tu conexión e intentá de nuevo.");
     } finally {
       setRoleSaving(false);
     }
@@ -278,7 +279,13 @@ export default function PerfilPage() {
           {roleChanged && (
             <div className="mb-4 p-3 rounded-lg text-sm text-center"
                  style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", color: "#10B981" }}>
-              ✅ Rol actualizado. Redirigiendo al panel...
+              Rol actualizado. Redirigiendo al panel...
+            </div>
+          )}
+          {roleError && (
+            <div className="mb-4 p-3 rounded-lg text-sm text-center"
+                 style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444" }}>
+              {roleError}
             </div>
           )}
 
