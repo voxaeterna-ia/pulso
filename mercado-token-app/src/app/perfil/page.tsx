@@ -305,9 +305,9 @@ export default function PerfilPage() {
               },
               {
                 role: "invitado" as UserRole,
-                icon: "👀",
-                title: "Invitado",
-                desc: "Explorá la plataforma sin compromisos. Limitado a ver el marketplace.",
+                icon: "🔎",
+                title: "Explorador",
+                desc: "Recorrí el marketplace y conocé los proyectos, pero no podés invertir ni publicar activos hasta completar tu verificación.",
               },
             ] as { role: UserRole; icon: string; title: string; desc: string }[]).map(opt => {
               const isActive = user.role === opt.role;
